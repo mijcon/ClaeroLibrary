@@ -3,6 +3,7 @@ package com.myclaero.claerolibrary
 import com.parse.*
 import com.parse.ktx.getBooleanOrNull
 import com.parse.ktx.getLongOrNull
+import com.parse.ktx.putOrRemove
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 import java.util.*
@@ -48,7 +49,7 @@ class ParseShift constructor() : ParseObject() {
 
     var hub: ParseHub?
         get() = getParseObject(HUB_POINT) as ParseHub?
-        set(value) = put(HUB_POINT, value!!)
+        set(value) = putOrRemove(HUB_POINT, value)
 
     var technician: ParseUser?
         get() = getParseUser(TECH_POINT)

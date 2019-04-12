@@ -1,4 +1,4 @@
-package com.myclaero.claerocustom
+package com.myclaero.claerolibrary
 
 import android.annotation.SuppressLint
 import android.content.Context

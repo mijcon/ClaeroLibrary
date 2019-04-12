@@ -61,7 +61,7 @@ class VehicleView(context: Context, attrs: AttributeSet? = null) : ConstraintLay
                     setOnClickListener { }
                 }
                 else -> {
-                    setText(R.string.vin_add)
+                    setText("Add VIN")
                     setTextColor(ContextCompat.getColor(context, R.color.colorPrimaryDark))
                     setOnClickListener { onAddVinClickListener?.onClick(vehicle!!) }
                 }
