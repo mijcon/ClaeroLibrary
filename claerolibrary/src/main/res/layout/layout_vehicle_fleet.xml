@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:id="@+id/layoutFleet"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:padding="16dp">
+
+
+	<TextView
+		android:id="@+id/textVehName"
+		android:layout_width="0dp"
+		android:layout_height="wrap_content"
+		android:layout_marginRight="8dp"
+		android:singleLine="true"
+		android:text="Brighton"
+		android:textColor="@color/colorTextPrimary"
+		android:textSize="16sp"
+		android:textStyle="bold"
+		app:layout_constraintRight_toLeftOf="@id/imageVehThumb"
+		app:layout_constraintStart_toStartOf="parent"
+		app:layout_constraintTop_toTopOf="parent" />
+
+	<TextView
+		android:id="@+id/textVehYmmt"
+		android:layout_width="0dp"
+		android:layout_height="wrap_content"
+		android:layout_marginRight="8dp"
+		android:maxLines="1"
+		android:text="2016 Honda Civic EX-T"
+
+		android:textSize="14sp"
+		app:layout_constraintRight_toLeftOf="@id/imageVehThumb"
+		app:layout_constraintStart_toStartOf="parent"
+		app:layout_constraintTop_toBottomOf="@id/textVehName" />
+
+	<TextView
+		android:id="@+id/textVehVin"
+
+		android:layout_width="0dp"
+		android:layout_height="wrap_content"
+		android:layout_marginRight="8dp"
+		android:maxLines="1"
+		android:text="19XFC1F47GE040711"
+
+		android:textSize="14sp"
+		app:layout_constraintRight_toLeftOf="@id/imageVehThumb"
+		app:layout_constraintStart_toStartOf="parent"
+		app:layout_constraintTop_toBottomOf="@id/textVehYmmt" />
+
+	<TextView
+		android:id="@+id/textVehPlate"
+
+		android:layout_width="0dp"
+		android:layout_height="wrap_content"
+		android:layout_marginRight="8dp"
+		android:maxLines="1"
+
+		android:text="Complete Plan"
+		android:textSize="14sp"
+		app:layout_constraintRight_toLeftOf="@id/imageVehThumb"
+		app:layout_constraintStart_toStartOf="parent"
+		app:layout_constraintTop_toBottomOf="@id/textVehVin" />
+
+	<ImageView
+		android:id="@+id/imageVehThumb"
+		android:layout_width="93dp"
+		android:layout_height="70dp"
+		android:layout_marginTop="8dp"
+		android:layout_marginEnd="8dp"
+		android:layout_marginBottom="8dp"
+		android:contentDescription="@string/thumb_desc"
+		android:scaleType="fitCenter"
+		app:layout_constraintBottom_toBottomOf="@+id/buttonVehOpt"
+		app:layout_constraintEnd_toStartOf="@+id/buttonVehEdit"
+		app:layout_constraintTop_toTopOf="@+id/buttonVehEdit"
+		app:layout_constraintVertical_bias="0.0" />
+
+	<ImageButton
+		android:id="@+id/buttonVehEdit"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:alpha="0.58"
+		android:backgroundTint="#00FFFFFF"
+		android:src="@drawable/ic_menu_manage"
+		app:layout_constraintEnd_toEndOf="parent"
+		app:layout_constraintTop_toTopOf="parent" />
+
+	<ImageButton
+		android:id="@+id/buttonVehOpt"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:alpha="0.58"
+		android:backgroundTint="#00000000"
+		android:src="@drawable/ic_overflow_black_24dp"
+		app:layout_constraintEnd_toEndOf="parent"
+		app:layout_constraintTop_toBottomOf="@+id/buttonVehEdit" />
+
+</android.support.constraint.ConstraintLayout>

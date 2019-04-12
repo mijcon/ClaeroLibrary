@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#5d87c5</color>
+    <color name="colorPrimaryDark">#275a94</color>
+
+    <color name="colorPrimaryLight">#8fb7f8</color>
+
+    <color name="colorAccent">#1565c0</color>
+    <color name="colorBlackSecondary">#8A000000</color>
+
+    <color name="colorTextPrimary">#df000000</color>
+    <color name="buttonSecondaryLight">#00000000</color>
+
+    <color name="colorChrome">#FFC6C3BE</color>
+    <color name="colorBlue">#FF5D87C5</color>
+    <color name="colorBlueFaded">#615D87C5</color>
+    <color name="colorBlueLight">#6175A5F8</color>
+
+    <color name="colorWhite">#FFFFFF</color>
+    <color name="colorWhiteFaded">#4DFFFFFF</color>
+
+    <color name="colorSuccess">#43a047</color>
+    <color name="colorError">#b71c1c</color>
+    <color name="colorWarning">#fbc02d</color>
+    <color name="colorTextSuccess">#212121</color>
+    <color name="colorTextError">#BDBDBD</color>
+    <color name="colorTextWarning">#212121</color>
+
+    <color name="backgroundBlueLight">#E8F2FF</color>
+    <color name="overlayBlueMedium">#5d87c5</color>
+    <color name="overlayBlueDark">#275a94</color>
+    <color name="borderBlueMedium">#275994</color>
+
+    <color name="backgroundGrayLight">#F1F1F1</color>
+    <color name="borderGrayMedium">#CACACA</color>
+</resources>
