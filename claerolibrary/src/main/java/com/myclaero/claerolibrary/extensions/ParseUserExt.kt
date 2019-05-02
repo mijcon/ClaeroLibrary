@@ -4,8 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import com.myclaero.claerolibrary.BuildConfig
 import com.myclaero.claerolibrary.ClaeroAPI
-import com.parse.ParseException
-import com.parse.ParseUser
+import com.parse.*
 import com.parse.ktx.getBooleanOrNull
 import com.parse.ktx.getIntOrNull
 import com.parse.ktx.getLongOrNull
@@ -15,7 +14,6 @@ import org.jetbrains.anko.uiThread
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 
-private const val PARSE_RESEND_EMAIL = BuildConfig.PARSE_API_URL + "/verificationEmailRequest"
 private const val PHONE_LONG = "phone"
 private const val FAMILY_NAME_STR = "familyName"
 private const val GIVEN_NAME_STR = "givenName"
@@ -107,12 +105,7 @@ val ParseUser.emailVerified: Boolean
 
 var ParseUser.phone: Long?
 	get() = getLongOrNull(PHONE_LONG)
-	set(value) {
-		if (phone != value) {
-			putOrIgnore(PHONE_LONG, value)
-			put(PHONE_VERIFIED_BOOL, false)
-		}
-	}
+	set(value) = putOrIgnore(PHONE_LONG, value)
 
 var ParseUser.familyName: String?
 	get() = getString(FAMILY_NAME_STR)
@@ -122,37 +115,9 @@ var ParseUser.givenName: String?
 	get() = getString(GIVEN_NAME_STR)
 	set(value) = putOrIgnore(GIVEN_NAME_STR, value)
 
-fun ParseUser.setPhone(phone: String) {
-	val num = phone.filter { it.isDigit() }
-	if (this.getPhone() != num) {
-		putOrIgnore(PHONE_LONG, num.toLongOrNull())
-		put(PHONE_VERIFIED_BOOL, false)
-	}
-}
+fun ParseUser.setPhone(phone: String) = putOrIgnore(PHONE_LONG, phone.filter { it.isDigit() }.toLongOrNull())
 
-fun ParseUser.getPhone(): String = getLongOrNull(PHONE_LONG)?.toString() ?: ""
-
-/**
- * Makes a REST API request to Parse Server to re-send a new verification email to the email address on file.
- * Returns server's responseCode if API was called, or returns '-1' if email has already been verified.
- */
-fun ParseUser.resendEmailVerificationInBackground(callback: ((responseCode: Int) -> Unit)? = null) {
-	var response = -1
-
-	doAsync {
-		val resendUrl = URL(PARSE_RESEND_EMAIL)
-		val resendCxn = (resendUrl.openConnection() as HttpsURLConnection).apply {
-			requestMethod = "POST"
-			addRequestProperty("X-Parse-Application-Id", BuildConfig.PARSE_APP_ID)
-			addRequestProperty("Content-Type", "application/json")
-			setData("{\"email\":\"$email\"}")
-		}
-		response = resendCxn.responseCode
-		uiThread {
-			callback?.invoke(response)
-		}
-	}
-}
+fun ParseUser.getPhone(): String? = getLongOrNull(PHONE_LONG)?.toString()
 
 fun ParseUser.registerInBackground(callback: ((success: Boolean, e: ParseException?) -> Unit)? = null) {
 	doAsync {
@@ -161,7 +126,7 @@ fun ParseUser.registerInBackground(callback: ((success: Boolean, e: ParseExcepti
 			val registerUrl = URL(String.format(ClaeroAPI.CLAERO_CLIENT, ParseUser.getCurrentUser().objectId))
 			val claeroCxn = (registerUrl.openConnection() as HttpsURLConnection).apply {
 				requestMethod = "POST"
-				addRequestProperty("x-api-key", BuildConfig.CLAERO_API_KEY)
+				addRequestProperty("x-api-key", ParseConfig.getCurrentConfig().getString("claero_api_key"))
 				addRequestProperty("content-type", "application/json")
 			}
 			val responseCode = claeroCxn.responseCode

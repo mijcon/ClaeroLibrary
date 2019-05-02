@@ -28,6 +28,7 @@ class ParseService constructor(): ParseObject() {
 		const val ADDL_ITEM_REL = "additional"
 		const val ADDL_PRICE_INT = "additionalPrice"
 		const val REQUIRES_JSON = "requires"
+		const val ORDER_INT = "order"
 	}
 
 	val title: String
@@ -47,6 +48,9 @@ class ParseService constructor(): ParseObject() {
 
 	val priceFloat: Float
 		get() = priceInt.toFloat() / 100
+
+	val frequency: Int
+		get() = getInt(ORDER_INT)
 
 	/**
 	 * Synchronously retrieves a Set of ParseServices that are in the same category as this ParseService.

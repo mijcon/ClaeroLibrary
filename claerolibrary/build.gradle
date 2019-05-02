@@ -1,18 +1,18 @@
 apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
 
 android {
     compileSdkVersion 28
     defaultConfig {
         minSdkVersion 23
         targetSdkVersion 28
-        versionCode 1
-        versionName "Aurora v1"
+        versionCode 2
+        versionName "Aurora v2"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
-        buildConfigField "String", "CLAERO_API_URL", '"https://api.myclaero.com/v0"'
+        buildConfigField "String", "CLAERO_API_URL", '"https://api.myclaero.com/"'
         buildConfigField "String", "REDLINE_API_URL", '"https://redline-redline-zipcode.p.mashape.com/rest/info.specs/%s/degrees"'
         buildConfigField "String", "MASHAPE_API_KEY", '"6GzrDxnPM1mshltm1rvlkRGRyF0dp1X8gdCjsnZJyu1HfOUovt"'
         buildConfigField "String", "CARQUERY_API_URL", '"https://www.carqueryapi.com/api/0.3/?callback=?&"'
@@ -32,41 +32,22 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-    flavorDimensions "version"
-    productFlavors {
-        demo {
-            dimension "version"
-            buildConfigField "String", "PARSE_APP_ID", '"fd50b9c25169e32ec8c84c53731561d5342d9081"'
-            buildConfigField "String", "PARSE_API_URL", '"https://dev.myclaero.com/parse"'
-            buildConfigField "String", "CLAERO_API_KEY", '"Jyxa1XeNZI7liWbI23ekD65xkvKmLJ3zai4EayuU"'
-        }
-        full {
-            dimension "version"
-            buildConfigField "String", "PARSE_APP_ID", '"20bb5c467bf3984b7b372679d37eb22081d18ac2"'
-            buildConfigField "String", "PARSE_API_URL", '"https://parse.myclaero.com/parse"'
-            buildConfigField "String", "CLAERO_API_KEY", '"Yo3tXeV7bx7B0wKq5q1Qs1qSUK5NMOp22Kf7Y0aK"'
-        }
-    }
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
     //noinspection GradleCompatible
     implementation 'com.android.support:appcompat-v7:28.0.0'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.1.1'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.2.1'
     implementation "org.jetbrains.anko:anko-commons:$anko_version"
-
     implementation 'com.android.support:exifinterface:28.0.0'
-    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
-
-    implementation 'com.google.android.gms:play-services-places:16.0.0'
+    implementation 'com.android.support.constraint:constraint-layout:2.0.0-alpha3'
+    implementation 'com.google.android.libraries.places:places:1.1.0'
     implementation 'com.squareup.picasso:picasso:2.71828'
-
     // Parse
     implementation 'com.github.parse-community.Parse-SDK-Android:parse:1.18.5'
     implementation 'com.github.parse-community.Parse-SDK-Android:ktx:1.18.5'

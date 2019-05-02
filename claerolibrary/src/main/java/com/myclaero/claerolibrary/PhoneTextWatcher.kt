@@ -31,31 +31,21 @@ class PhoneTextWatcher(private val editText: EditText): TextWatcher {
 		if (p0.toString() != newString) {
 			// Determine which number the cursor is behind.
 			cursorPosition = p0
-				?.substring(0, editText.selectionStart)
-				?.filter { it.isDigit() }
-				?.let { if (it.isNotEmpty() && it[0] != '1') "1$it" else it }
-				?.length
+				.substring(0, editText.selectionStart)
+				.filter { it.isDigit() }
+				.let { if (it.isNotEmpty() && it[0] != '1') "1$it" else it }
+				.length
 
 			// Determine where on the new string the cursor should go.
 			cursorPosition = when (cursorPosition) {
-				0 -> {
-					1
-				}
-				1 -> {
-					3
-				}
-				in 2..4 -> {
-					cursorPosition?.plus(3)
-				}
-				in 5..7 -> {
-					cursorPosition?.plus(5)
-				}
-				else -> {
-					cursorPosition?.plus(6)
-				}
+				0 -> 1
+				1 -> 3
+				in 2..4 -> cursorPosition?.plus(3)
+				in 5..7 -> cursorPosition?.plus(5)
+				else -> cursorPosition?.plus(6)
 			}
 			// Replace String.
-			p0?.replace(0, p0.length, newString)
+			p0.replace(0, p0.length, newString)
 		}
 
 		// Re-place cursor to where it should be (assuming it needs re-placing)
@@ -67,10 +57,8 @@ class PhoneTextWatcher(private val editText: EditText): TextWatcher {
 		onPhoneCheckedListener?.invoke(no.length == 11)
 	}
 
-	override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
-	}
+	override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) = Unit
 
-	override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
-	}
+	override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) = Unit
 
 }

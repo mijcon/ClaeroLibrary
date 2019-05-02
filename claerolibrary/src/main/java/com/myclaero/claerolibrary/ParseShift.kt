@@ -1,11 +1,11 @@
 package com.myclaero.claerolibrary
 
 import com.parse.*
+import com.parse.ktx.findAll
 import com.parse.ktx.getBooleanOrNull
 import com.parse.ktx.getLongOrNull
 import com.parse.ktx.putOrRemove
-import org.jetbrains.anko.doAsync
-import org.jetbrains.anko.uiThread
+import kotlinx.coroutines.*
 import java.util.*
 
 @ParseClassName(ParseShift.NAME)
@@ -22,21 +22,39 @@ class ParseShift constructor() : ParseObject() {
         const val TECH_POINT = "technician"
         const val TICKETS_REL = "tickets"
 
-        fun getShifts(callback: (shifts: List<ParseShift>?, e: ParseException?) -> Unit) {
-            ParseQuery(ParseShift::class.java)
-                .whereEqualTo(TECH_POINT, ParseUser.getCurrentUser())
-                .include(HUB_POINT)
-                .findInBackground { shifts, e ->
-                    callback(shifts.sortedBy { it.start }, e)
+        // This function could take a hot second...
+        fun getShifts(begin: Long, end: Long, callback: (shifts: Map<ParseShift, Set<ParseTicket>>?, e: Exception?) -> Unit) {
+            GlobalScope.launch(Dispatchers.Main) {
+                try {
+                    val shifts = async(Dispatchers.IO) {
+                        ParseQuery(ParseShift::class.java)
+                            .whereEqualTo(TECH_POINT, ParseUser.getCurrentUser())
+                            .whereGreaterThanOrEqualTo(START_LONG, begin)
+                            .whereLessThanOrEqualTo(START_LONG, end)
+                            .include(HUB_POINT)
+                            .findAll()
+                    }
+                    val tickets = async(Dispatchers.IO) {
+                        ParseQuery(ParseTicket::class.java)
+                            .whereContainedIn(
+                                ParseTicket.SHIFT_POINT,
+                                List(shifts.await().size) { shifts.await()[it].objectId })
+                            .whereGreaterThanOrEqualTo(START_LONG, begin)
+                            .whereLessThanOrEqualTo(START_LONG, end)
+                            .include(ParseTicket.LOCATION_POINT)
+                            .include(ParseTicket.VEHICLE_POINT)
+                            .findAll()
+                    }
+                    val shiftMap = mutableMapOf<ParseShift, Set<ParseTicket>>()
+                    shifts.await().forEach { shift ->
+                        shiftMap[shift] = tickets.await().filter { it.shift == shift.objectId }.toSet()
+                    }
+                    callback(shiftMap.toMap(), null)
+                } catch (e: Exception) {
+                    callback(null, e)
                 }
-        }
-
-        /*fun getAllShifts(callback: (shifts: MutableList<ParseHub>?, e: ParseException?) -> Unit) {
-            ClaeroAPI.queryShifts(ParseUser.getCurrentSessionToken(), Date()) {
-
             }
-            ParseDecoder.get().decode(JSONObject())
-        }*/
+        }
     }
 
     var start: Date?
@@ -53,35 +71,20 @@ class ParseShift constructor() : ParseObject() {
 
     var technician: ParseUser?
         get() = getParseUser(TECH_POINT)
-        set(value) = put(TECH_POINT, value!!)
+        set(value) = putOrRemove(TECH_POINT, value)
 
     var isActive: Boolean?
         get() = getBooleanOrNull(ACTIVE_BOOL) ?: false
         set(value) = put(ACTIVE_BOOL, value!!)
 
+    @Deprecated(
+        "We'll avoid using this, because we had problems with too many simultaneous calls to the ParseServer.",
+        ReplaceWith("ParseShift.companion.getShifts()")
+    )
     var tickets: MutableList<ParseTicket>
-        get() = getRelation<ParseTicket>(TICKETS_REL)
-            .query
-            .include(ParseTicket.VEHICLE_POINT)
-            .include(ParseTicket.LOCATION_POINT)
-            .find()
-            .sortedBy { it.time }
-            .toMutableList()
-        set(value) {
-
+        get() {
+            val params = mapOf("shiftId" to objectId)
+            return ParseCloud.callFunction("getTickets", params)
         }
-
-    fun getTickets(callback: (tickets: List<ParseTicket>?, e: ParseException?) -> Unit) {
-        doAsync {
-            var tickets: List<ParseTicket>? = null
-            var error: ParseException? = null
-            try {
-                tickets = this@ParseShift.tickets
-            } catch (e: ParseException) {
-                error = e
-            }
-            uiThread { callback(tickets, error) }
-        }
-    }
-
+        set(value) = Unit
 }

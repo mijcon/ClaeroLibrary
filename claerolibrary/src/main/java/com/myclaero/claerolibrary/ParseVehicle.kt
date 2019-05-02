@@ -7,9 +7,11 @@ import android.graphics.Matrix
 import android.net.Uri
 import android.os.Build
 import android.support.media.ExifInterface
+import android.widget.ImageView
 import com.myclaero.claerolibrary.extensions.dpToPx
 import com.myclaero.claerolibrary.extensions.getFirstOrNull
 import com.myclaero.claerolibrary.extensions.rotateImage
+import com.myclaero.claerolibrary.extensions.uploadAsync
 import com.parse.*
 import com.parse.ktx.findAll
 import com.parse.ktx.getBooleanOrNull
@@ -60,6 +62,24 @@ class ParseVehicle constructor() : ParseObject() {
                 .findInBackground(callback)
 
         fun get(vin: String) = ParseQuery(ParseVehicle::class.java).whereEqualTo(VIN_STR, vin).getFirstOrNull()
+
+        fun getAllThumbnailsInParallel(vehicles: MutableList<ParseVehicle>, callback: (vehicle: ParseVehicle, bitmap: Bitmap?) -> Unit) {
+            GlobalScope.launch(Dispatchers.Main) {
+                try {
+                    vehicles.forEach {
+                        val job = async(Dispatchers.IO) { it.getParseFile(THUMB_FILE)?.data }
+                        val thumbnail = async(Dispatchers.Default) {
+                            job.await()?.let {
+                                BitmapFactory.decodeByteArray(it, 0, it.size)
+                            }
+                        }
+                        withContext(Dispatchers.Main) { callback(it, thumbnail.await()) }
+                    }
+                } catch (e: ParseException) {
+                    if (e.code != ParseException.CONNECTION_FAILED) e.uploadAsync(TAG)
+                }
+            }
+        }
 
         // Coroutine method of getting ALL thumbnails...
         // fun getThumbnails(vehicles: Set<ParseVehicle>, callback: ())
@@ -219,11 +239,10 @@ class ParseVehicle constructor() : ParseObject() {
 
     fun getOpenTicketInBackground(callback: (ticket: ParseTicket?, e: ParseException?) -> Unit) {
         ParseQuery(ParseTicket::class.java)
-            .whereEqualTo(ParseTicket.VEHICLE_POINT, this)
-            .whereLessThanOrEqualTo(ParseTicket.STATUS_INT, ParseTicket.Status.OPEN.value)
-            .include(ParseTicket.LOCATION_POINT)
-            .include(ParseTicket.SERVICES_REL)
             .fromNetwork()
+            .whereEqualTo(ParseTicket.VEHICLE_POINT, this)
+            .whereLessThan(ParseTicket.STATUS_INT, ParseTicket.Status.CLOSED.value)
+            .include(ParseTicket.LOCATION_POINT)
             .getFirstInBackground { ticket, e ->
                 if (e == null || e.code == ParseException.OBJECT_NOT_FOUND)
                     callback(ticket, null)
@@ -347,15 +366,11 @@ class ParseVehicle constructor() : ParseObject() {
     fun getThumbnailInBackground(callback: (vehicle: ParseVehicle, bitmap: Bitmap?, e: Exception?) -> Unit) {
         GlobalScope.launch(Dispatchers.Main) {
             try {
-                val job = async(Dispatchers.IO) {
-                    getParseFile(THUMB_FILE)?.data
-                }
-                val thumbnail = async(Dispatchers.Default) {
-                    job.await()?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
-                }
-                withContext(Dispatchers.Main) { callback(this@ParseVehicle, thumbnail.await(), null) }
+                val data = withContext(Dispatchers.IO) { getParseFile(THUMB_FILE)?.data }
+                val thumbnail = data?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+                callback(this@ParseVehicle, thumbnail, null)
             } catch (e: ParseException) {
-                withContext(Dispatchers.Main) { callback(this@ParseVehicle, null, e) }
+                callback(this@ParseVehicle, null, e)
             }
         }
     }

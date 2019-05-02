@@ -47,8 +47,8 @@ fun Exception.uploadAsync(loc: String, note: String? = null) {
 }
 
 var Calendar.timeInSecs: Long
-	get() = timeInMillis / 1000
-	set(value) { timeInMillis = value * 1000 }
+	get() = timeInMillis / 1000L
+	set(value) { timeInMillis = value * 1000L }
 
 fun Exception.upload(loc: String, note: String? = null) {
 	if (this !is ParseException || code != ParseException.CONNECTION_FAILED) {

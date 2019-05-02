@@ -1,17 +1,10 @@
 package com.myclaero.claerolibrary
 
-import android.content.Context
-import android.support.v7.app.AlertDialog
 import com.myclaero.claerolibrary.extensions.getTimeString
 import com.myclaero.claerolibrary.extensions.upload
-import com.parse.ParseClassName
-import com.parse.ParseException
-import com.parse.ParseObject
-import com.parse.ParseUser
-import com.parse.ktx.findAll
-import com.parse.ktx.getIntOrNull
-import com.parse.ktx.getLongOrNull
-import com.parse.ktx.putOrIgnore
+import com.parse.*
+import com.parse.ktx.*
+import kotlinx.coroutines.*
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 import java.util.*
@@ -22,8 +15,6 @@ class ParseTicket constructor() : ParseObject() {
     companion object {
         const val NAME = "Ticket"
         const val TAG = "ParseTicket"
-
-        const val MILLIS_IN_TIME_BLOCK = 1000 * 60 * 30
 
         // The Parse Server's key for each field.
         // Each is named "KEY_TYPE" so it's always clear what data-type to expect.
@@ -91,6 +82,22 @@ class ParseTicket constructor() : ParseObject() {
             else -> Status.NEW
         }
 
+    var shift: String?
+        get() = getParseObject(SHIFT_POINT)?.objectId
+        set(shiftId) {
+            val params = mapOf(
+                "ticket" to objectId,
+                "oldShift" to shift,
+                "newShift" to shiftId
+            )
+            putOrRemove(SHIFT_POINT, createWithoutData(ParseShift::class.java, shiftId))
+            ParseCloud.callFunctionInBackground<Boolean>("assignShift", params, null)
+        }
+
+    fun setShift(shift: ClaeroShift) {
+        this.shift = shift.objectId
+    }
+
     var payment: ParseObject?
         get() = getParseObject(CHARGE_POINT)
         set(value) = put(CHARGE_POINT, value!!)
@@ -98,9 +105,6 @@ class ParseTicket constructor() : ParseObject() {
     var time: Date?
         get() = getLongOrNull(START_LONG)?.let { Date(it * 1000) }
         set(value) = value?.let { put(START_LONG, value.time / 1000) } ?: Unit
-
-	val shift: ParseShift?
-		get() = getParseObject(SHIFT_POINT) as ParseShift?
 
     fun getServicesAsSet(callback: (servicesSet: Set<ParseService>?) -> Unit) {
         if (this.status == Status.NEW) {
@@ -115,7 +119,7 @@ class ParseTicket constructor() : ParseObject() {
 
     fun setServices(newServices: Set<ParseService>, callback: (e: ParseException?) -> Unit) {
         // Save new TimeEstimate to help our TimeListAdapter update quickly.
-        val time = newServices.sumBy { it.getIntOrNull(ParseService.DURATION_INT) ?: 0 }
+        val time = newServices.sumBy { it.duration }
         serviceTime = if (newServices.isEmpty()) null else time
         listeners.forEach { it.onUpdate(Field.TIME_ESTIMATE) }
 
@@ -154,31 +158,21 @@ class ParseTicket constructor() : ParseObject() {
     /**
      * A special save() function used to trigger the UpdateListener.
      */
-    fun saveDraft(context: Context, field: Field) {
-        if (status == Status.OPEN) {
-            AlertDialog.Builder(context)
-                .setTitle("Draft Ticket")
-                .setMessage("Your ticket is now in draft mode. Please make sure to Confirm your ticket.")
-                .setPositiveButton("Okay") { d, w ->
-                    d.dismiss()
-                }
-                .create()
-                .show()
-        }
-
+    fun saveDraft(field: Field): Boolean {
+        val reopen = status == Status.OPEN
         status = Status.DRAFT
         saveInBackground {
             // Switch back to an update-after-save model if there are errors...
             // listeners.forEach { it.onUpdate(field) }
         }
         listeners.forEach { it.onUpdate(field) }
+        return reopen
     }
 
-    fun getOpenings(callback: ((availability: ClaeroAPI.ClaeroAvailability?, error: Exception?) -> Unit)) {
+    fun getOpenings(callback: ((availability: ClaeroAvailability?, error: Exception?) -> Unit)) {
 	    doAsync {
 		    try {
-			    val latLng = location!!.geoPoint.let { "${it.latitude},${it.longitude}" }
-			    val response = ClaeroAPI.queryAvailability(objectId, latLng)
+			    val response = ClaeroAPI.queryAvailability(this@ParseTicket)
 			    uiThread { callback(response, null) }
 		    } catch (e: Exception) {
 			    uiThread { callback(null, e) }
@@ -187,29 +181,24 @@ class ParseTicket constructor() : ParseObject() {
 	    }
     }
 
-    fun finalizeDraft(field: Field): Boolean {
+    fun finalizeDraft() {
         status = Status.OPEN
         save()
-        // val success = ClaeroAPI.scheduleTicket(objectId)
-        listeners.forEach { it.onUpdate(field) }
-        return true
+        GlobalScope.launch {
+            withContext(Dispatchers.Main) { listeners.forEach { it.onUpdate(Field.STATUS) } }
+        }
     }
 
-    fun finalizeDraftAsync(callback: (e: Exception?) -> Unit) {
-        this.status = Status.OPEN
-        doAsync {
+    fun finalizeDraftAsync(callback: (e: ParseException?) -> Unit) {
+        GlobalScope.launch {
+            status = Status.OPEN
             try {
-                save()
-	            val success = ClaeroAPI.scheduleTicket(objectId)
-                uiThread {
-	                callback(null)
-                    listeners.forEach { it.onUpdate(Field.STATUS) }
-                }
-            } catch (e: Exception) {
-                uiThread {
-	                callback(e)
-	                e.upload(TAG)
-                }
+                val save = async(Dispatchers.IO) { save() }
+                withContext(Dispatchers.Main) { listeners.forEach { it.onUpdate(Field.STATUS) } }
+                save.await()
+                withContext(Dispatchers.Main) { callback(null) }
+            } catch (e: ParseException) {
+                withContext(Dispatchers.Main) { callback(e) }
             }
         }
     }
