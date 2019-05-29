@@ -84,15 +84,7 @@ class ParseTicket constructor() : ParseObject() {
 
     var shift: String?
         get() = getParseObject(SHIFT_POINT)?.objectId
-        set(shiftId) {
-            val params = mapOf(
-                "ticket" to objectId,
-                "oldShift" to shift,
-                "newShift" to shiftId
-            )
-            putOrRemove(SHIFT_POINT, createWithoutData(ParseShift::class.java, shiftId))
-            ParseCloud.callFunctionInBackground<Boolean>("assignShift", params, null)
-        }
+        set(shiftId) = putOrRemove(SHIFT_POINT, createWithoutData(ParseShift::class.java, shiftId))
 
     fun setShift(shift: ClaeroShift) {
         this.shift = shift.objectId

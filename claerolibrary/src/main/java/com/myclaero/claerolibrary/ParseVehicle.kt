@@ -16,6 +16,7 @@ import com.parse.*
 import com.parse.ktx.findAll
 import com.parse.ktx.getBooleanOrNull
 import com.parse.ktx.getIntOrNull
+import com.parse.ktx.putOrIgnore
 import kotlinx.coroutines.*
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
@@ -53,15 +54,24 @@ class ParseVehicle constructor() : ParseObject() {
         const val PARTS_JSON = "parts"
         const val SUBSCRIPTION_POINT = "subscription"
 
-        fun getAll() = ParseQuery(ParseVehicle::class.java).whereEqualTo(ACTIVE_BOOL, true).fromNetwork().find()
+        fun getAll() = ParseQuery(ParseVehicle::class.java)
+            .whereEqualTo(OWNER_POINT, ParseUser.getCurrentUser())
+            .whereEqualTo(ACTIVE_BOOL, true)
+            .orderByAscending(ORDER_INT)
+            .fromNetwork()
+            .find()
 
         fun getAllAsync(callback: ((list: MutableList<ParseVehicle>?, e: ParseException?) -> Unit)) =
             ParseQuery(ParseVehicle::class.java)
+                .whereEqualTo(OWNER_POINT, ParseUser.getCurrentUser())
                 .whereEqualTo(ACTIVE_BOOL, true)
+                .orderByAscending(ORDER_INT)
                 .fromNetwork()
                 .findInBackground(callback)
 
-        fun get(vin: String) = ParseQuery(ParseVehicle::class.java).whereEqualTo(VIN_STR, vin).getFirstOrNull()
+        fun get(vin: String) = ParseQuery(ParseVehicle::class.java)
+            .whereEqualTo(VIN_STR, vin)
+            .getFirstOrNull()
 
         fun getAllThumbnailsInParallel(vehicles: MutableList<ParseVehicle>, callback: (vehicle: ParseVehicle, bitmap: Bitmap?) -> Unit) {
             GlobalScope.launch(Dispatchers.Main) {
@@ -101,7 +111,7 @@ class ParseVehicle constructor() : ParseObject() {
     }
 
     var active: Boolean
-        get() = getBooleanOrNull(ACTIVE_BOOL) ?: false
+        get() = getBooleanOrNull(ACTIVE_BOOL) ?: true
         set(active) = put(ACTIVE_BOOL, active)
 
     var owner: ParseUser?
@@ -114,15 +124,15 @@ class ParseVehicle constructor() : ParseObject() {
 
     var year: Int
         get() = getInt(YEAR_INT)
-        set(year) = put(YEAR_INT, year)
+        set(year) = putOrIgnore(YEAR_INT, year)
 
-    var make: String?
-        get() = getString(MAKE_STR)
-        set(make) = put(MAKE_STR, make!!)
+    var make: String
+        get() = getString(MAKE_STR)!!
+        set(make) = put(MAKE_STR, make)
 
-    var model: String?
-        get() = getString(MODEL_STR)
-        set(model) = put(MODEL_STR, model!!)
+    var model: String
+        get() = getString(MODEL_STR)!!
+        set(model) = put(MODEL_STR, model)
 
     var trim: String?
         get() = getString(TRIM_STR)
@@ -234,17 +244,25 @@ class ParseVehicle constructor() : ParseObject() {
 
     val openTicket: ParseTicket
         get() = ParseQuery(ParseTicket::class.java)
+            .whereEqualTo(ParseTicket.VEHICLE_POINT, this)
             .whereLessThanOrEqualTo(ParseTicket.STATUS_INT, ParseTicket.Status.OPEN.value)
+            .include(ParseTicket.LOCATION_POINT)
             .first
 
     fun getOpenTicketInBackground(callback: (ticket: ParseTicket?, e: ParseException?) -> Unit) {
+        val openStatus = listOf<Int>(
+            ParseTicket.Status.NEW.value,
+            ParseTicket.Status.DRAFT.value,
+            ParseTicket.Status.OPEN.value
+        )
+
         ParseQuery(ParseTicket::class.java)
-            .fromNetwork()
             .whereEqualTo(ParseTicket.VEHICLE_POINT, this)
-            .whereLessThan(ParseTicket.STATUS_INT, ParseTicket.Status.CLOSED.value)
+            .whereContainedIn(ParseTicket.STATUS_INT, openStatus)
             .include(ParseTicket.LOCATION_POINT)
-            .getFirstInBackground { ticket, e ->
-                if (e == null || e.code == ParseException.OBJECT_NOT_FOUND)
+            .fromNetwork()
+            .getFirstInBackground { ticket, e: ParseException? ->
+                if (e?.code == ParseException.OBJECT_NOT_FOUND)
                     callback(ticket, null)
                 else
                     callback(ticket, e)
@@ -302,17 +320,17 @@ class ParseVehicle constructor() : ParseObject() {
     }
 
 
-    fun setImageInBackground(context: Context, uri: Uri, thumbCallback: (thumb: Bitmap) -> Unit) {
+    fun setImageInBackground(context: Context, uri: Uri): Bitmap {
+        val imgFullBitmap = getBitmap(context, uri)
+        val imgThumbBitmap = resizeBitmap(imgFullBitmap)
         GlobalScope.launch(Dispatchers.Main) {
-            val imgFullBitmap = withContext(Dispatchers.Default) { getBitmap(context, uri) }
-            val imgThumbBitmap = async(Dispatchers.Default) { resizeBitmap(imgFullBitmap) }
-            thumbCallback(imgThumbBitmap.await())
             val fullFile = async(Dispatchers.IO) { uploadImage(imgFullBitmap) }
-            val thumbFile = async(Dispatchers.IO) { uploadImage(imgThumbBitmap.await()) }
+            val thumbFile = async(Dispatchers.IO) { uploadImage(imgThumbBitmap) }
             put(THUMB_FILE, thumbFile.await())
             put(IMAGE_FILE, fullFile.await())
             saveInBackground()
         }
+        return imgThumbBitmap
     }
 
     private fun getBitmap(context: Context, uri: Uri): Bitmap {

@@ -7,6 +7,7 @@ import com.parse.ktx.getLongOrNull
 import com.parse.ktx.putOrRemove
 import kotlinx.coroutines.*
 import java.util.*
+import kotlin.system.measureTimeMillis
 
 @ParseClassName(ParseShift.NAME)
 class ParseShift constructor() : ParseObject() {
@@ -23,31 +24,38 @@ class ParseShift constructor() : ParseObject() {
         const val TICKETS_REL = "tickets"
 
         // This function could take a hot second...
-        fun getShifts(begin: Long, end: Long, callback: (shifts: Map<ParseShift, Set<ParseTicket>>?, e: Exception?) -> Unit) {
+        fun getShifts(
+            t0: Long,
+            t1: Long,
+            callback: (shifts: Map<ParseShift, Set<ParseTicket>>?, e: Exception?) -> Unit
+        ) {
             GlobalScope.launch(Dispatchers.Main) {
+                val start = if (t0 > Int.MAX_VALUE) t0 / 1000L else t0
+                val end = if (t1 > Int.MAX_VALUE) t1 / 1000L else t1
                 try {
-                    val shifts = async(Dispatchers.IO) {
+                    val shifts = withContext(Dispatchers.IO) {
                         ParseQuery(ParseShift::class.java)
                             .whereEqualTo(TECH_POINT, ParseUser.getCurrentUser())
-                            .whereGreaterThanOrEqualTo(START_LONG, begin)
+                            .whereGreaterThanOrEqualTo(START_LONG, start)
                             .whereLessThanOrEqualTo(START_LONG, end)
+                            .whereEqualTo(ACTIVE_BOOL, true)
                             .include(HUB_POINT)
                             .findAll()
                     }
-                    val tickets = async(Dispatchers.IO) {
+                    val shiftIds = List(shifts.size) { shifts[it].objectId }
+                    val tickets = withContext(Dispatchers.IO) {
                         ParseQuery(ParseTicket::class.java)
-                            .whereContainedIn(
-                                ParseTicket.SHIFT_POINT,
-                                List(shifts.await().size) { shifts.await()[it].objectId })
-                            .whereGreaterThanOrEqualTo(START_LONG, begin)
-                            .whereLessThanOrEqualTo(START_LONG, end)
+                            .whereContainedIn(ParseTicket.SHIFT_POINT, shiftIds)
+                            .whereGreaterThanOrEqualTo(ParseTicket.STATUS_INT, ParseTicket.Status.OPEN.value)
+                            .whereGreaterThanOrEqualTo(ParseTicket.START_LONG, start)
+                            .whereLessThanOrEqualTo(ParseTicket.START_LONG, end)
                             .include(ParseTicket.LOCATION_POINT)
                             .include(ParseTicket.VEHICLE_POINT)
                             .findAll()
                     }
                     val shiftMap = mutableMapOf<ParseShift, Set<ParseTicket>>()
-                    shifts.await().forEach { shift ->
-                        shiftMap[shift] = tickets.await().filter { it.shift == shift.objectId }.toSet()
+                    shifts.forEach { shift ->
+                        shiftMap[shift] = tickets.filter { it.shift == shift.objectId }.toSet()
                     }
                     callback(shiftMap.toMap(), null)
                 } catch (e: Exception) {

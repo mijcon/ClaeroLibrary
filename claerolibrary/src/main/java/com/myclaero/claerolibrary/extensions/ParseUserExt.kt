@@ -118,25 +118,3 @@ var ParseUser.givenName: String?
 fun ParseUser.setPhone(phone: String) = putOrIgnore(PHONE_LONG, phone.filter { it.isDigit() }.toLongOrNull())
 
 fun ParseUser.getPhone(): String? = getLongOrNull(PHONE_LONG)?.toString()
-
-fun ParseUser.registerInBackground(callback: ((success: Boolean, e: ParseException?) -> Unit)? = null) {
-	doAsync {
-		try {
-			signUp()
-			val registerUrl = URL(String.format(ClaeroAPI.CLAERO_CLIENT, ParseUser.getCurrentUser().objectId))
-			val claeroCxn = (registerUrl.openConnection() as HttpsURLConnection).apply {
-				requestMethod = "POST"
-				addRequestProperty("x-api-key", ParseConfig.getCurrentConfig().getString("claero_api_key"))
-				addRequestProperty("content-type", "application/json")
-			}
-			val responseCode = claeroCxn.responseCode
-			if (responseCode != 200) Exception().upload(
-				"ParseUserExt",
-				"Unable to register Stripe Customer: $claeroCxn.responseMessage"
-			)
-			uiThread { callback?.invoke(responseCode == 200, null) }
-		} catch (e: ParseException) {
-			uiThread { callback?.invoke(false, e) }
-		}
-	}
-}

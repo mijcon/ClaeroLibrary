@@ -3,8 +3,6 @@ package com.myclaero.claerolibrary
 import android.util.Log
 import com.myclaero.claerolibrary.extensions.Verified
 import com.myclaero.claerolibrary.extensions.readAll
-import com.myclaero.claerolibrary.extensions.timeInSecs
-import com.myclaero.claerolibrary.extensions.uploadAsync
 import com.parse.*
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
@@ -17,6 +15,7 @@ import java.net.URL
 import java.net.URLConnection
 import java.util.*
 import javax.net.ssl.HttpsURLConnection
+import khttp.*
 
 /**
  * The purpose of this static class is to handle all input and output from the Claero API Gateway.
@@ -29,34 +28,40 @@ class ClaeroAPI {
 
         const val STD_WINDOW_SECS: Long = 60 * 60 * 24 * 7 * 3
 
-        private const val CLAERO_USER_VERIFY = BuildConfig.CLAERO_API_URL + "v0/client/verify?user=%s"
-        private const val CLAERO_PHONE_VERIFY = BuildConfig.CLAERO_API_URL + "v0/client/phone?user=%s"
+        private const val CLAERO_USER_VERIFY = BuildConfig.CLAERO_API_URL + "v0/client/verify"
+        // private const val CLAERO_USER_VERIFY = BuildConfig.CLAERO_API_URL + "v0/client/verify?user=%s"
+        private const val CLAERO_PHONE_VERIFY = BuildConfig.CLAERO_API_URL + "v0/client/phone"
         private const val CLAERO_CHARGE = BuildConfig.CLAERO_API_URL + "v0/charge?req=%s"
-        internal const val CLAERO_CLIENT = BuildConfig.CLAERO_API_URL + "v0/client?user=%s"
+        private const val CLAERO_CLIENT = BuildConfig.CLAERO_API_URL + "v0/client?user=%s"
         private const val CLAERO_SERVICE = BuildConfig.CLAERO_API_URL + "v0/service?ticket=%s"
         private const val CLAERO_CLIENT_PHONE = BuildConfig.CLAERO_API_URL + "v0/client/phone"
-        private const val CLAERO_SOURCE_CARD = BuildConfig.CLAERO_API_URL + "v0/sources/card?user=%s"
+        private const val CLAERO_SOURCE_CARD = BuildConfig.CLAERO_API_URL + "v0/sources/card"
         private const val CLAERO_SOURCE_BANK = BuildConfig.CLAERO_API_URL + "v0/sources/bank"
 
-        private const val CLAERO_SCHEDULE_SEARCH = BuildConfig.CLAERO_API_URL + "v1/schedule?ticket=%s&lat_lng=%s"
-        private const val CLAERO_SCHEDULE_SUBMIT = BuildConfig.CLAERO_API_URL + "v0/schedule?ticket=%s&shift=%s"
+        private const val CLAERO_SCHEDULE = BuildConfig.CLAERO_API_URL + "v1/schedule"
         private const val CLAERO_CLIENT_SEARCH = BuildConfig.CLAERO_API_URL + "v0/client?q=%s&p=%s&session=%s"
         private const val CLAERO_SERVICE_SEARCH = BuildConfig.CLAERO_API_URL + "v0/service?q=%s&p=%s&session=%s"
         private const val CLAERO_VEHICLE_SEARCH = BuildConfig.CLAERO_API_URL + "v0/vehicle?client=%s&session=%s"
+
+        private val claeroApiHeader = mapOf(
+            "X-Api-Key" to ParseConfig.getCurrentConfig().getString("claero_api_key")
+        )
 
         /**
          * Checks whether the provided ParseUser's contact points have been verified.
          */
         fun getVerificationStatus(user: ParseUser): Verified {
-            val verifyUrl = URL(String.format(CLAERO_USER_VERIFY, user.objectId))
-            val verifyCxn = verifyUrl.openConnection("GET")
-            checkStatus(verifyCxn.responseCode)
-            val response = JSONObject(verifyCxn.readAll())
-            verifyCxn.disconnect()
+            val params = mapOf("user" to user.objectId)
+            val request = get(
+                CLAERO_USER_VERIFY,
+                headers = claeroApiHeader,
+                params = params
+            )
+            checkStatus(request.statusCode)
 
-            val email = response.getBoolean("emailVerified")
-            val phone = response.getBoolean("phoneVerified")
-
+            val json = request.jsonObject
+            val email = json.getBoolean("emailVerified")
+            val phone = json.getBoolean("phoneVerified")
             return when {
                 email && phone -> Verified.BOTH
                 email -> Verified.EMAIL
@@ -73,15 +78,15 @@ class ClaeroAPI {
          * @param code   The temporary code used to verify the phone number.
          */
         fun verifyText(user: String, token: String? = null, code: String? = null): JSONObject {
-            val verifyUrl = URL(String.format(CLAERO_PHONE_VERIFY, user))
-            val connection = verifyUrl.openConnection("POST")
+            val params = mapOf("user" to user)
             val data = mapOf("token" to token, "code" to code)
-            connection.setData(data)
-            val statusCode = checkStatus(connection.responseCode)
-            val response = connection.readAll()
-            connection.disconnect()
-            val json = JSONObject(response)
-            return json
+            val request = post(
+                CLAERO_PHONE_VERIFY,
+                params = params,
+                json = data
+            )
+            checkStatus(request.statusCode)
+            return request.jsonObject
         }
 
         /**
@@ -100,22 +105,24 @@ class ClaeroAPI {
          */
         fun saveCard(user: ParseUser, token: String, callback: (verified: Boolean?, e: Exception?) -> (Unit)) {
             doAsync {
-                val data = "{ \"token\": \"$token\"  }"
-
-                val verifyUrl = URL(String.format(CLAERO_SOURCE_CARD, user.objectId))
-                val verifyCxn = verifyUrl.openConnection("PUT")
-                verifyCxn.setData(data)
+                val params = mapOf("user" to user.objectId)
+                val data = mapOf("token" to token)
+                val request = put(
+                    CLAERO_SOURCE_CARD,
+                    params = params,
+                    json = data
+                )
                 var verified: Boolean? = null
                 var error: Exception? = null
 
-                if (verifyCxn.responseCode == 200) {
-                    verified = JSONObject(verifyCxn.readAll()).getBoolean("emailVerified")
-                } else {
-                    error = Exception(verifyCxn.responseMessage)
+                try {
+                    checkStatus(request.statusCode)
+                    verified = request.jsonObject.getBoolean("emailVerified")
+                } catch (e: Exception) {
+                    error = e
+                } finally {
+                    uiThread { callback(verified, error) }
                 }
-
-                verifyCxn.disconnect()
-                uiThread { callback(verified, error) }
             }
         }
 
@@ -123,38 +130,35 @@ class ClaeroAPI {
          * Takes a Plaid-generated Plaid Token and exchanges it for the corresponding Stripe Source Token.
          */
         fun getBankToken(
-            publicToken: String,
-            accountId: String,
-            test: Boolean = true,
+            token: String, accountId: String, test: Boolean = true,
             callback: (stripeToken: String?, requestId: String?, error: Exception?) -> Unit
         ) {
             doAsync {
+                val data = mapOf(
+                    "token" to token,
+                    "account_id" to accountId,
+                    "test" to test
+                )
+                val request = post(
+                    CLAERO_SOURCE_BANK,
+                    json = data
+                )
+
+                var json: JSONObject? = null
+                var error: Exception? = null
+
                 try {
-                    val data = JSONObject().apply {
-                        put("token", publicToken)
-                        put("account_id", accountId)
-                        put("test", test)
-                    }.toString()
-
-                    val verifyUrl = URL(CLAERO_SOURCE_BANK)
-                    val verifyCxn = verifyUrl.openConnection("POST")
-                    verifyCxn.setData(data)
-
-                    if (verifyCxn.responseCode == 200) {
-                        val response = JSONObject(verifyCxn.readAll())
-                        uiThread {
-                            callback(
-                                response.getString("stripe_bank_account_token"),
-                                response.getString("request_id"),
-                                null
-                            )
-                        }
-                    } else {
-                        throw Exception(verifyCxn.responseMessage)
-                    }
-                    verifyCxn.disconnect()
+                    checkStatus(request.statusCode)
+                    json = request.jsonObject
                 } catch (e: Exception) {
-                    uiThread { callback(null, null, e) }
+                    error = e
+                }
+                uiThread {
+                    callback(
+                        json?.getString("stripe_bank_account_token"),
+                        json?.getString("request_id"),
+                        error
+                    )
                 }
             }
         }
@@ -252,25 +256,29 @@ class ClaeroAPI {
          * Synchronously queries the Claero API for an availability table.
          */
         fun queryAvailability(ticket: ParseTicket): ClaeroAvailability? {
-            // Build a new Calendar object
-            val latLng = ticket.location!!.geoPoint.let { "${it.latitude},${it.longitude}" }
-            val url = URL(String.format(CLAERO_SCHEDULE_SEARCH, ticket.objectId, latLng))
-            val connection = url.openConnection("GET")
-            checkStatus(connection.responseCode)
-
-            // Good Response
-            val jsonData = JSONObject(connection.readAll())
-            connection.disconnect()
-
-            return ClaeroAvailability.fromJSON(jsonData)
+            val params = mapOf(
+                "ticket" to ticket.objectId,
+                "lat_lng" to ticket.location!!.geoPoint.let { "${it.latitude},${it.longitude}" }
+            )
+            val request = get(
+                CLAERO_SCHEDULE,
+                params = params
+            )
+            checkStatus(request.statusCode)
+            return ClaeroAvailability.fromJSON(request.jsonObject)
         }
 
         fun scheduleTicket(ticket: ParseTicket, shiftId: String): Boolean {
-            val url = URL(String.format(CLAERO_SCHEDULE_SUBMIT, ticket.objectId, shiftId))
-            val connection = url.openConnection("PUT")
-            val response = checkStatus(connection.responseCode)
-            connection.disconnect()
-            return response == 200
+            val params = mapOf(
+                "ticket" to ticket.objectId,
+                "shift" to shiftId
+            )
+            val request = put(
+                CLAERO_SCHEDULE,
+                params = params
+            )
+            checkStatus(request.statusCode)
+            return request.statusCode == 200
         }
 
         /*fun preauthCharge(callback: (verified: Boolean?, e: Exception?) -> (Unit)) {

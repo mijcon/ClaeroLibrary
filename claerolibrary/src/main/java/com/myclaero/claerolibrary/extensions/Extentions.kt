@@ -23,7 +23,6 @@ fun EditText.getString(): String {
 	return text.toString()
 }
 
-
 /**
  * Sends information provided and the Exception itself to the Parse Server for error-reporting
  */
@@ -135,10 +134,16 @@ fun Date.getTimeString(halfHours: Int): String {
 	return "$stringDate\n$stringStart \u2013 $stringEnd"
 }
 
-
 @Suppress("NOTHING_TO_INLINE", "unused")
 inline fun <T : ParseObject> ParseQuery<T>.getFirstOrNull(): T? = try {
 	first
 } catch (e: ParseException) {
 	if (e.code == ParseException.OBJECT_NOT_FOUND) null else throw e
 }
+
+infix fun Calendar.isSameDayAs(calendar: Calendar) = when {
+	this[Calendar.YEAR] != calendar[Calendar.YEAR] -> false
+	this[Calendar.DAY_OF_YEAR] != calendar[Calendar.DAY_OF_YEAR] -> false
+	else -> true
+}
+

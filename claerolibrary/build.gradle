@@ -45,12 +45,14 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.2.1'
     implementation "org.jetbrains.anko:anko-commons:$anko_version"
     implementation 'com.android.support:exifinterface:28.0.0'
-    implementation 'com.android.support.constraint:constraint-layout:2.0.0-alpha3'
+    implementation 'com.android.support.constraint:constraint-layout:2.0.0-beta1'
     implementation 'com.google.android.libraries.places:places:1.1.0'
     implementation 'com.squareup.picasso:picasso:2.71828'
     // Parse
     implementation 'com.github.parse-community.Parse-SDK-Android:parse:1.18.5'
     implementation 'com.github.parse-community.Parse-SDK-Android:ktx:1.18.5'
+
+    implementation 'khttp:khttp:0.1.0'
 }
 repositories {
     mavenCentral()

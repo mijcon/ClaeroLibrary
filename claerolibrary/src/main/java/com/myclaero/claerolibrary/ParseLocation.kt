@@ -35,17 +35,17 @@ class ParseLocation constructor() : ParseObject() {
 
         const val MAPS_GOOGLE_KEY = "google"
         const val MAPS_HERE_KEY = "here"
-    }
 
-    val googleFields by lazy {
-        listOf(
-            Place.Field.ID,
-            Place.Field.NAME,
-            Place.Field.LAT_LNG,
-            Place.Field.PHONE_NUMBER,
-            Place.Field.ADDRESS,
-            Place.Field.ADDRESS_COMPONENTS
-        )
+        val googleFields by lazy {
+            listOf(
+                Place.Field.ID,
+                Place.Field.NAME,
+                Place.Field.LAT_LNG,
+                Place.Field.PHONE_NUMBER,
+                Place.Field.ADDRESS,
+                Place.Field.ADDRESS_COMPONENTS
+            )
+        }
     }
 
     constructor(place: Place) : this() {
