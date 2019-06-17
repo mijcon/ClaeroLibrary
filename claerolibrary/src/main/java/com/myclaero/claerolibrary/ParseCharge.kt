@@ -1,15 +1,8 @@
 package com.myclaero.claerolibrary
 
-import com.myclaero.claerolibrary.extensions.readAll
 import com.parse.ParseClassName
 import com.parse.ParseObject
-import com.parse.ParseRole
-import com.parse.ParseUser
-import org.jetbrains.anko.doAsync
-import org.jetbrains.anko.uiThread
 import org.json.JSONObject
-import java.net.URL
-import javax.net.ssl.HttpsURLConnection
 
 @ParseClassName(ParseCharge.NAME)
 class ParseCharge constructor() : ParseObject() {

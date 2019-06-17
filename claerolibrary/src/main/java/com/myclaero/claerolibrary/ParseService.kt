@@ -1,6 +1,8 @@
 package com.myclaero.claerolibrary
 
+import com.myclaero.claerolibrary.extensions.toList
 import com.parse.ParseClassName
+import com.parse.ParseEncoder
 import com.parse.ParseObject
 import com.parse.ktx.getIntOrNull
 import org.json.JSONObject
@@ -97,4 +99,38 @@ class ParseService constructor(): ParseObject() {
 
 	val requisites: JSONObject
 		get() = getJSONObject(REQUIRES_JSON) ?: JSONObject()
+
+	fun toSparceService(): SparseService = SparseService(objectId)
+
+	data class SparseService(val objectId: String) {
+		companion object {
+			const val OBJECTID_STR = "objectId"
+			const val INVENTORY_ARRAY = "inventory"
+		}
+
+		constructor(json: JSONObject): this(json.getString(OBJECTID_STR)) {
+			this.json = json
+		}
+
+		private var json: JSONObject = JSONObject()
+		val inventory: MutableList<SparseInventory> =
+			json.getJSONArray(INVENTORY_ARRAY)
+				.toList<JSONObject>()
+				.map { SparseInventory(it) }
+				.toMutableList()
+
+	}
+
+	data class SparseInventory(val json: JSONObject) {
+		companion object {
+			const val QUANTITY_NUM = "quantity"
+			const val OBJECTID_STR = "objectId"
+		}
+
+		val objectId = json.getString(OBJECTID_STR)
+		val quantityInt = json.getInt(QUANTITY_NUM)
+		val quantityFloat = json.getDouble(QUANTITY_NUM).toFloat()
+
+	}
+
 }

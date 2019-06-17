@@ -35,7 +35,17 @@ class ParseTicket constructor() : ParseObject() {
         DRAFT (0),
         OPEN (1),
         CANCELLED (2),
-        CLOSED (3)
+        CLOSED (3),
+        PENDING (4)
+    }
+
+    enum class TechnicianStatus(value: Int) {
+        DRIVING_PICKUP (1),
+        ARRIVING_PICKUP (2),
+        DRIVING_SHOP (3),
+        ARRIVING_SHOP (4),
+        DRIVING_DROPOFF (5),
+        ARRIVING_DROPOFF (6)
     }
 
     enum class Field(val value: Int) {
@@ -75,6 +85,7 @@ class ParseTicket constructor() : ParseObject() {
     var status: Status
         set(value) = put(STATUS_INT, value.value)
         get() = when (getIntOrNull(STATUS_INT)) {
+            4 -> Status.PENDING
             3 -> Status.CLOSED
             2 -> Status.CANCELLED
             1 -> Status.OPEN

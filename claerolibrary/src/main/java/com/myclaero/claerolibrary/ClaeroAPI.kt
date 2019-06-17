@@ -1,6 +1,9 @@
 package com.myclaero.claerolibrary
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.util.Log
+import com.google.android.gms.location.LocationServices
 import com.myclaero.claerolibrary.extensions.Verified
 import com.myclaero.claerolibrary.extensions.readAll
 import com.parse.*
@@ -39,6 +42,8 @@ class ClaeroAPI {
         private const val CLAERO_SOURCE_BANK = BuildConfig.CLAERO_API_URL + "v0/sources/bank"
 
         private const val CLAERO_SCHEDULE = BuildConfig.CLAERO_API_URL + "v1/schedule"
+        private const val CLAERO_PUSH = BuildConfig.CLAERO_API_URL + "v1/push"
+        private const val CLAERO_PUSH_TICKET = "$CLAERO_PUSH/ticket"
         private const val CLAERO_CLIENT_SEARCH = BuildConfig.CLAERO_API_URL + "v0/client?q=%s&p=%s&session=%s"
         private const val CLAERO_SERVICE_SEARCH = BuildConfig.CLAERO_API_URL + "v0/service?q=%s&p=%s&session=%s"
         private const val CLAERO_VEHICLE_SEARCH = BuildConfig.CLAERO_API_URL + "v0/vehicle?client=%s&session=%s"
@@ -83,7 +88,8 @@ class ClaeroAPI {
             val request = post(
                 CLAERO_PHONE_VERIFY,
                 params = params,
-                json = data
+                json = data,
+                headers = claeroApiHeader
             )
             checkStatus(request.statusCode)
             return request.jsonObject
@@ -256,13 +262,13 @@ class ClaeroAPI {
          * Synchronously queries the Claero API for an availability table.
          */
         fun queryAvailability(ticket: ParseTicket): ClaeroAvailability? {
-            val params = mapOf(
-                "ticket" to ticket.objectId,
-                "lat_lng" to ticket.location!!.geoPoint.let { "${it.latitude},${it.longitude}" }
-            )
+            val params = mutableMapOf<String, String>()
+            ticket.objectId?.let { params.put("ticket", it) }
+            ticket.location?.geoPoint?.let { params.put("lat_lng", "${it.latitude},${it.longitude}") }
             val request = get(
                 CLAERO_SCHEDULE,
-                params = params
+                params = params,
+                headers = claeroApiHeader
             )
             checkStatus(request.statusCode)
             return ClaeroAvailability.fromJSON(request.jsonObject)
@@ -275,10 +281,50 @@ class ClaeroAPI {
             )
             val request = put(
                 CLAERO_SCHEDULE,
-                params = params
+                params = params,
+                headers = claeroApiHeader
             )
             checkStatus(request.statusCode)
             return request.statusCode == 200
+        }
+
+        @SuppressLint("MissingPermission")
+        fun pushTicketStatus(
+            context: Context,
+            ticket: ParseTicket,
+            status: ParseTicket.TechnicianStatus,
+            callback: ((success: Boolean, e: Exception?) -> Unit)
+        ) {
+            if (status != ParseTicket.TechnicianStatus.DRIVING_PICKUP && status != ParseTicket.TechnicianStatus.ARRIVING_PICKUP) {
+                callback(false, null)
+                return
+            }
+
+            val locationClient = LocationServices.getFusedLocationProviderClient(context)
+            locationClient.flushLocations().addOnSuccessListener {
+                locationClient.lastLocation.addOnSuccessListener { location ->
+                    val data = mapOf(
+                        "ticket" to ticket.objectId,
+                        "lat" to location.latitude,
+                        "lng" to location.longitude,
+                        "arrived" to (status == ParseTicket.TechnicianStatus.ARRIVING_PICKUP)
+                    )
+
+                    doAsync {
+                        try {
+                            val request = post(
+                                CLAERO_PUSH_TICKET,
+                                headers = claeroApiHeader,
+                                json = data
+                            )
+                            checkStatus(request.statusCode)
+                            uiThread { callback(request.statusCode == 200, null) }
+                        } catch (e: Exception) {
+                            uiThread { callback(false, e) }
+                        }
+                    }
+                }
+            }
         }
 
         /*fun preauthCharge(callback: (verified: Boolean?, e: Exception?) -> (Unit)) {

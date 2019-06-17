@@ -2,8 +2,8 @@ package com.myclaero.claerolibrary
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.support.constraint.ConstraintLayout
-import android.support.v4.content.ContextCompat
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
 import android.util.AttributeSet
 import android.widget.ImageView
 import android.widget.TextView

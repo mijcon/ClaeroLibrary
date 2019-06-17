@@ -6,12 +6,9 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.net.Uri
 import android.os.Build
-import android.support.media.ExifInterface
+import androidx.exifinterface.media.ExifInterface
 import android.widget.ImageView
-import com.myclaero.claerolibrary.extensions.dpToPx
-import com.myclaero.claerolibrary.extensions.getFirstOrNull
-import com.myclaero.claerolibrary.extensions.rotateImage
-import com.myclaero.claerolibrary.extensions.uploadAsync
+import com.myclaero.claerolibrary.extensions.*
 import com.parse.*
 import com.parse.ktx.findAll
 import com.parse.ktx.getBooleanOrNull
@@ -71,6 +68,7 @@ class ParseVehicle constructor() : ParseObject() {
 
         fun get(vin: String) = ParseQuery(ParseVehicle::class.java)
             .whereEqualTo(VIN_STR, vin)
+            .whereEqualTo(OWNER_POINT, ParseUser.getCurrentUser())
             .getFirstOrNull()
 
         fun getAllThumbnailsInParallel(vehicles: MutableList<ParseVehicle>, callback: (vehicle: ParseVehicle, bitmap: Bitmap?) -> Unit) {
@@ -319,66 +317,17 @@ class ParseVehicle constructor() : ParseObject() {
         }
     }
 
-
     fun setImageInBackground(context: Context, uri: Uri): Bitmap {
-        val imgFullBitmap = getBitmap(context, uri)
-        val imgThumbBitmap = resizeBitmap(imgFullBitmap)
+        val imgFullBitmap = context.getBitmap(uri)
+        val imgThumbBitmap = imgFullBitmap.resize(THUMB_WIDTH, THUMB_HEIGHT)
         GlobalScope.launch(Dispatchers.Main) {
-            val fullFile = async(Dispatchers.IO) { uploadImage(imgFullBitmap) }
-            val thumbFile = async(Dispatchers.IO) { uploadImage(imgThumbBitmap) }
+            val fullFile = async(Dispatchers.IO) { imgFullBitmap.upload() }
+            val thumbFile = async(Dispatchers.IO) { imgThumbBitmap.upload() }
             put(THUMB_FILE, thumbFile.await())
             put(IMAGE_FILE, fullFile.await())
             saveInBackground()
         }
         return imgThumbBitmap
-    }
-
-    private fun getBitmap(context: Context, uri: Uri): Bitmap {
-        // Get the Bitmap
-        context.contentResolver.notifyChange(uri, null)
-        var imgFullBitmap = android.provider.MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
-
-        // Open EXIF Data
-        val inputStream = context.contentResolver.openInputStream(uri)!!
-        val exifInterface =
-            if (Build.VERSION.SDK_INT > 23) ExifInterface(inputStream) else ExifInterface(uri.path!!)
-        inputStream.close()
-
-        // Read orientation and rotate if needed
-        try {
-            val orientation =
-                exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
-            imgFullBitmap = when (orientation) {
-                ExifInterface.ORIENTATION_ROTATE_90 -> imgFullBitmap.rotateImage(90f)
-                ExifInterface.ORIENTATION_ROTATE_180 -> imgFullBitmap.rotateImage(180f)
-                ExifInterface.ORIENTATION_ROTATE_270 -> imgFullBitmap.rotateImage(270f)
-                else -> imgFullBitmap
-            }
-        } catch (e: Exception) {
-            // e.upload(TAG)
-        }
-        return imgFullBitmap
-    }
-
-    private fun resizeBitmap(input: Bitmap): Bitmap {
-        // Create downsized image
-        return Matrix().let {
-            val width = input.width
-            val height = input.height
-            val scaleWidth = THUMB_WIDTH.dpToPx() / width.toFloat()
-            val scaleHeight = THUMB_HEIGHT.dpToPx() / height.toFloat()
-            val scale = if (scaleWidth > scaleHeight) scaleHeight else scaleWidth
-            it.apply { postScale(scale, scale) }
-            Bitmap.createBitmap(input, 0, 0, width, height, it, false)
-        }
-    }
-
-    private fun uploadImage(bitmap: Bitmap): ParseFile {
-        val bytes = ByteArrayOutputStream().let {
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
-            it.toByteArray()
-        }
-        return ParseFile(bytes).apply { save() }
     }
 
     fun getThumbnailInBackground(callback: (vehicle: ParseVehicle, bitmap: Bitmap?, e: Exception?) -> Unit) {

@@ -1,14 +1,15 @@
 package com.myclaero.claerolibrary.extensions
 
+import android.content.Context
 import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Matrix
+import android.net.Uri
+import android.os.Build
 import android.widget.EditText
+import androidx.exifinterface.media.ExifInterface
 import com.myclaero.claerolibrary.BuildConfig
-import com.parse.ParseException
-import com.parse.ParseObject
-import com.parse.ParseQuery
-import com.parse.ParseUser
+import com.parse.*
 import com.parse.ktx.putOrIgnore
 import org.json.JSONArray
 import java.io.*
@@ -69,11 +70,11 @@ fun Exception.upload(loc: String, note: String? = null) {
 }
 
 @Suppress("UNCHECKED_CAST")
-fun <T> JSONArray.toList(): List<T> = List<T>(length()) { this[it] as T }
+fun <T> JSONArray.toList(): List<T> = List(length()) { this[it] as T }
 
 
 fun HttpsURLConnection.readAll(): String {
-	val reader = java.io.BufferedReader(java.io.InputStreamReader(this.inputStream, "UTF-8"))
+	val reader = BufferedReader(InputStreamReader(this.inputStream, "UTF-8"))
 
 	var line = reader.readLine()
 	var result = ""
@@ -139,6 +140,53 @@ inline fun <T : ParseObject> ParseQuery<T>.getFirstOrNull(): T? = try {
 	first
 } catch (e: ParseException) {
 	if (e.code == ParseException.OBJECT_NOT_FOUND) null else throw e
+}
+
+fun Bitmap.resize(width: Int, height: Int) =
+		// Create downsized image
+		Matrix().let {
+			val scaleWidth = width.dpToPx() / this.width.toFloat()
+			val scaleHeight = height.dpToPx() / this.height.toFloat()
+			val scale = if (scaleWidth > scaleHeight) scaleHeight else scaleWidth
+			it.apply { postScale(scale, scale) }
+			Bitmap.createBitmap(this, 0, 0, this.width, this.height, it, false)
+		}
+
+fun Bitmap.upload(): ParseFile =
+	ByteArrayOutputStream().let {
+		compress(Bitmap.CompressFormat.PNG, 100, it)
+		it.toByteArray()
+	}.let {
+		ParseFile(it).apply { save() }
+	}
+
+fun Context.getBitmap(uri: Uri): Bitmap {
+	// Get the Bitmap
+	contentResolver.notifyChange(uri, null)
+	var imgFullBitmap = android.provider.MediaStore.Images.Media.getBitmap(contentResolver, uri)
+
+	// Open EXIF Data
+	val inputStream = contentResolver.openInputStream(uri)!!
+	val exifInterface =
+		if (Build.VERSION.SDK_INT > 23) ExifInterface(inputStream) else ExifInterface(
+			uri.path!!
+		)
+	inputStream.close()
+
+	// Read orientation and rotate if needed
+	try {
+		val orientation =
+			exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+		imgFullBitmap = when (orientation) {
+			ExifInterface.ORIENTATION_ROTATE_90 -> imgFullBitmap.rotateImage(90f)
+			ExifInterface.ORIENTATION_ROTATE_180 -> imgFullBitmap.rotateImage(180f)
+			ExifInterface.ORIENTATION_ROTATE_270 -> imgFullBitmap.rotateImage(270f)
+			else -> imgFullBitmap
+		}
+	} catch (e: Exception) {
+		e.uploadAsync("Context.getBitmap()")
+	}
+	return imgFullBitmap
 }
 
 infix fun Calendar.isSameDayAs(calendar: Calendar) = when {
