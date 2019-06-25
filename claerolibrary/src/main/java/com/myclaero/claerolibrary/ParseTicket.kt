@@ -59,9 +59,9 @@ class ParseTicket constructor() : ParseObject() {
 
     val listeners: MutableSet<UpdateListener> = mutableSetOf()
 
-    var vehicle: ParseVehicle? = null
+    var vehicle: ParseVehicle?
         get() = getParseObject(VEHICLE_POINT) as ParseVehicle?
-        set(value) = if (field == null) put(VEHICLE_POINT, value!!) else Unit
+        set(value) = putOrRemove(VEHICLE_POINT, value)
 
     var owner: ParseUser?
         get() = getParseUser(USER_POINT)
@@ -108,6 +108,15 @@ class ParseTicket constructor() : ParseObject() {
     var time: Date?
         get() = getLongOrNull(START_LONG)?.let { Date(it * 1000) }
         set(value) = value?.let { put(START_LONG, value.time / 1000) } ?: Unit
+
+    fun getInvoiceAsync(callback: GetCallback<ParseInvoice>) {
+        ParseQuery.getQuery(ParseInvoice::class.java)
+            .whereEqualTo(ParseInvoice.TICKET_POINT, this)
+            .getFirstInBackground { invoice, e ->
+                if (e.code == ParseException.OBJECT_NOT_FOUND) callback.done(null, null)
+                else callback.done(invoice, e)
+            }
+    }
 
     fun getServicesAsSet(callback: (servicesSet: Set<ParseService>?) -> Unit) {
         if (this.status == Status.NEW) {

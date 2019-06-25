@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="welcome_back">¡Bienvenidos, %s!</string>
+	<string name="vin_reader_fail">Se occurrió un error. Por favor, introduzca el VIN (número de chasis).</string>
+	<string name="vin_add">Añada VIN</string>
+	<string name="verify_spam">Intente revisar el carpeta de spam.</string>
+	<string name="verify_instructions">Revise el correo electrónico</string>
+	<string name="verify_header">Verificar Correo Electrónico</string>
+	<string name="vehicle_vin_add">Añada VIN</string>
+	<string name="vehicle_delete_fail">No se pudo borrar el vehículo.</string>
+	<string name="vendor_error">Encontramos un error en contactar un vendedor. Por favor, trate de nuevo en unos minutos.</string>
+	<string name="unknown_error">Encontramos un error. Se notificó el equipo.</string>
+	<string name="prompt_email">Correo</string>
+	<string name="prompt_password">Contraseña</string>
+	<string name="prompt_confirm">Confirmar contraseña</string>
+	<string name="password_requirements">más de 8 letras, incluya una minúscula, una mayúscula y un número</string>
+	<string name="title_activity_location">Lugar</string>
+	<string name="title_activity_add_vehicle_demo">Añada Vehículo</string>
+	<string name="title_activity_add_vehicle">Añada Vehículo</string>
+	<string name="title_activity_add_card">Añada Tarjeta</string>
+	<string name="name_given">Nombre</string>
+	<string name="name_family">Apellido</string>
+	<string name="login_welcome">¡Bienvenidos a Claero!</string>
+	<string name="location_nickname_hint">Nombre de lugar (como \"Trabajo\")</string>
+	<string name="intro_welcome_header">¡Bienvenidos a Claero!</string>
+	<string name="intro_verification_subheader">Verifique el correo electrónico.</string>
+	<string name="intro_verification_header">Verificación</string>
+	<string name="intro_verification_description">Para proteger la cuenta, se requeiere una rápida verificación.</string>
+	<string name="intro_technology_header">Cuidado de coche, del siglo XXI</string>
+	<string name="intro_swipe">Deslice a la derecha para continuar</string>
+	<string name="intro_peace_subheader">Tranquilidad inigualable</string>
+	<string name="intro_convenience_subheader">Diseñado por la conveniencia suya</string>
+	<string name="intro_continue_subheader">¡Adelante!</string>
+	<string name="action_log_out">Cerrar Sesión</string>
+	<string name="or_sign_up">o regístrese</string>
+	<string name="or_log_in">o inicie sessión</string>
+	<string name="title_activity_login">Iniciar Sesión</string>
+	<string name="state">Estado</string>
+	<string name="sign_up">Regístrese</string>
+</resources>

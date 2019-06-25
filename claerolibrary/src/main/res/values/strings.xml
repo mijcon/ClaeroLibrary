@@ -1,11 +1,8 @@
 <resources>
-    <string name="app_name">Claero Auto</string>
-    <string name="title_activity_main">Claero Auto</string>
-    <string name="navigation_drawer_open">Open navigation drawer</string>
-    <string name="navigation_drawer_close">Close navigation drawer</string>
-    <string name="nav_header_title">Android Studio</string>
-    <string name="nav_header_subtitle">android.studio@android.com</string>
-    <string name="nav_header_desc">Navigation header</string>
+    <string name="app_name"
+        translatable="false">Claero Auto</string>
+    <string name="title_activity_main"
+        translatable="false">Claero Auto</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_add_vehicle">Add New Vehicle</string>
     <string name="title_activity_login">Sign in to Claero</string>
@@ -15,6 +12,9 @@
     <string name="connection_error">The server could not be reached.\nPlease check your connection.</string>
     <string name="unknown_error">Something went wrong and our team has been notified.</string>
     <string name="vendor_error">Our vendor is having a problem right now.\nPlease try again in a few minutes.</string>
+    <string name="state">State</string>
+    <string name="blank"
+        translatable="false"></string>
 
     <!-- Strings related to Menu Items -->
     <string name="action_log_out">Log out</string>
@@ -111,14 +111,11 @@
     <string name="thumb_desc">Vehicle Thumbnail</string>
     <string name="title_activity_add_vehicle_demo">Add New Vehicle</string>
 
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="ticket_draft_found">It looks like you have started a ticket already. Would you like to pick up where
         you left off?
     </string>
-    <string name="title_activity_main2">Main2Activity</string>
-    <string name="section_format">Hello World from section: %1$d</string>
-    <string name="title_activity_maps">Map</string>
 
     <string name="location_nickname_hint">Location Name (e.g. \"Work\")</string>
+    <string name="service_new">New Service</string>
+    <string name="vehicle_vin_add">Add VIN</string>
 </resources>

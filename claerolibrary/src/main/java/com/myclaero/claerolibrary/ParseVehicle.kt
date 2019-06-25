@@ -51,6 +51,8 @@ class ParseVehicle constructor() : ParseObject() {
         const val PARTS_JSON = "parts"
         const val SUBSCRIPTION_POINT = "subscription"
 
+        const val VEHICLE_SERVICES_FUN = "vehicleServices"
+
         fun getAll() = ParseQuery(ParseVehicle::class.java)
             .whereEqualTo(OWNER_POINT, ParseUser.getCurrentUser())
             .whereEqualTo(ACTIVE_BOOL, true)
@@ -93,11 +95,18 @@ class ParseVehicle constructor() : ParseObject() {
         // fun getThumbnails(vehicles: Set<ParseVehicle>, callback: ())
     }
 
-    enum class Drive {
-        FWD,
-        RWD,
-        AWD,
-        XWD
+    enum class Transmission(val string: String) {
+        NA("N/A"),
+        MANUAL("Manual"),
+        AUTO("Automatic"),
+        CVT("CVT")
+    }
+
+    enum class Drive(val string: String) {
+        FWD("FWD"),
+        RWD("RWD"),
+        AWD("AWD"),
+        XWD("4WD")
     }
 
     enum class Fuel {
@@ -306,6 +315,15 @@ class ParseVehicle constructor() : ParseObject() {
                     .sortedByDescending { it.time }
                 callback(list, e)
             }
+    }
+
+    fun getServicesAsync(callback: (services: List<ParseService>?, error: ParseException?) -> Unit) {
+        ParseCloud.callFunctionInBackground<List<ParseService>>(
+            VEHICLE_SERVICES_FUN,
+            mapOf("vehicle" to objectId)
+        ) { result, e ->
+            callback(result, e)
+        }
     }
 
     fun getLicenseState(context: Context): String? {

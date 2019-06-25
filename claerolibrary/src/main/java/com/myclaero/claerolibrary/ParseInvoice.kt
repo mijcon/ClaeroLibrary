@@ -22,10 +22,15 @@ class ParseInvoice constructor() : ParseObject() {
         const val SUBTOTAL_NUM = "subtotal"
         const val SERVICES_ARRAY = "services"
         const val CHARGE_REL = "charge"
-        const val REPORT_JSON = "report"
+        const val REPORT_JSON = "json"
     }
 
-    val notes: MutableList<String> = getList<String>(NOTES_ARRAY) ?: mutableListOf()
+    constructor(ticket: ParseTicket) : this() {
+        this.ticket = ticket
+    }
+
+    val notes: MutableList<String>
+        get() = getList<String>(NOTES_ARRAY) ?: mutableListOf()
 
     var mileage: Int?
         get() = getIntOrNull(MILEAGE_NUM)
@@ -39,30 +44,37 @@ class ParseInvoice constructor() : ParseObject() {
             putOrIgnore(TICKET_POINT, value)
         }
 
-    val subtotal: Int? = getIntOrNull(SUBTOTAL_NUM)
+    val subtotal: Int?
+        get() = getIntOrNull(SUBTOTAL_NUM)
 
     val services: MutableList<ParseService.SparseService> =
         (getJSONArray(SERVICES_ARRAY) ?: JSONArray()).toList<JSONObject>()
             .map { ParseService.SparseService(it) }
             .toMutableList()
 
-    val charges: MutableList<ParseCharge> = getRelation<ParseCharge>(CHARGE_REL).query.find()
+    val charges: MutableList<ParseCharge>
+        get() = getRelation<ParseCharge>(CHARGE_REL).query.find()
 
-    fun getChargesAsync(callback: FindCallback<ParseCharge>) =
+    fun getChargesAsync(callback: FindCallback<ParseCharge>) {
         getRelation<ParseCharge>(CHARGE_REL).query.findInBackground(callback)
+    }
 
-    fun addChargeAsync(charge: ParseCharge, callback: SaveCallback?) =
+    fun addChargeAsync(charge: ParseCharge, callback: SaveCallback?) {
         getRelation<ParseCharge>(CHARGE_REL).run {
             add(charge)
             saveInBackground(callback)
         }
+    }
 
-    fun removeChargeAsync(charge: ParseCharge, callback: SaveCallback?) =
+    fun removeChargeAsync(charge: ParseCharge, callback: SaveCallback?) {
         getRelation<ParseCharge>(CHARGE_REL).run {
             remove(charge)
             saveInBackground(callback)
         }
+    }
 
-    val report: ClaeroReport = ClaeroReport(getJSONObject(REPORT_JSON) ?: JSONObject())
+    var report: ClaeroReport
+        get() = ClaeroReport(this, getJSONObject(REPORT_JSON) ?: JSONObject()).also { report = it }
+        private set(value) { put(REPORT_JSON, value.json) }
 
 }
