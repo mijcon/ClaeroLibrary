@@ -1,7 +1,10 @@
 package com.myclaero.claerolibrary
 
 import com.myclaero.claerolibrary.extensions.toList
-import com.parse.*
+import com.parse.FindCallback
+import com.parse.ParseClassName
+import com.parse.ParseObject
+import com.parse.SaveCallback
 import com.parse.ktx.getIntOrNull
 import com.parse.ktx.putOrIgnore
 import org.json.JSONArray
@@ -25,7 +28,7 @@ class ParseInvoice constructor() : ParseObject() {
         const val REPORT_JSON = "json"
     }
 
-    constructor(ticket: ParseTicket) : this() {
+    constructor(ticket: Ticket) : this() {
         this.ticket = ticket
     }
 
@@ -38,8 +41,8 @@ class ParseInvoice constructor() : ParseObject() {
             putOrIgnore(MILEAGE_NUM, value)
         }
 
-    var ticket: ParseTicket?
-        get() = getParseObject(TICKET_POINT) as ParseTicket
+    var ticket: Ticket?
+        get() = getParseObject(TICKET_POINT) as Ticket
         set(value) {
             putOrIgnore(TICKET_POINT, value)
         }
@@ -47,9 +50,9 @@ class ParseInvoice constructor() : ParseObject() {
     val subtotal: Int?
         get() = getIntOrNull(SUBTOTAL_NUM)
 
-    val services: MutableList<ParseService.SparseService> =
+    val services: MutableList<Service.SparseService> =
         (getJSONArray(SERVICES_ARRAY) ?: JSONArray()).toList<JSONObject>()
-            .map { ParseService.SparseService(it) }
+            .map { Service.SparseService(it) }
             .toMutableList()
 
     val charges: MutableList<ParseCharge>
@@ -73,8 +76,10 @@ class ParseInvoice constructor() : ParseObject() {
         }
     }
 
+    /*
     var report: ClaeroReport
         get() = ClaeroReport(this, getJSONObject(REPORT_JSON) ?: JSONObject()).also { report = it }
         private set(value) { put(REPORT_JSON, value.json) }
+     */
 
 }

@@ -3,15 +3,18 @@ package com.myclaero.claerolibrary
 import com.myclaero.claerolibrary.extensions.toList
 import com.parse.*
 import com.parse.ktx.getIntOrNull
-import org.json.JSONArray
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
-@ParseClassName(ParseService.NAME)
-class ParseService constructor() : ParseObject() {
+@ParseClassName(Service.NAME)
+class Service constructor() : ParseObject() {
 
     companion object {
         const val NAME = "Service"
-        const val TAG = "ParseService"
+        const val TAG = "Service"
 
         // The Parse Server's key for each field.
         // Each is named "KEY_TYPE" so it's always clear what data-type to expect.
@@ -30,6 +33,26 @@ class ParseService constructor() : ParseObject() {
         const val ADDL_PRICE_INT = "additionalPrice"
         const val REQUIRES_JSON = "requires"
         const val ORDER_INT = "order"
+        const val REPORT_ARRAY = "report"
+
+        const val VEHICLE_SERVICES_FUN = "vehicleServices"
+
+        fun getServices(vehicle: Vehicle? = null): List<Service> =
+            ParseCloud.callFunction<List<Service>>(
+                VEHICLE_SERVICES_FUN,
+                mapOf("vehicle" to vehicle?.objectId)
+            )
+
+        fun getServicesAsync(vehicle: Vehicle? = null, callback: FindCallback<Service>) {
+            GlobalScope.launch(Dispatchers.Main) {
+                try {
+                    val services = withContext(Dispatchers.IO) { getServices(vehicle) }
+                    callback.done(services, null)
+                } catch (e: ParseException) {
+                    callback.done(null, e)
+                }
+            }
+        }
     }
 
     val title: String
@@ -57,8 +80,8 @@ class ParseService constructor() : ParseObject() {
      * Synchronously retrieves a Set of ParseServices that are in the same category as this ParseService.
      * Note: This Set WILL include the object in question.
      */
-    val servicesSet: Set<ParseService>
-        get() = getRelation<ParseService>(SERVICES_REL).query.find().toSet()
+    val servicesSet: Set<Service>
+        get() = getRelation<Service>(SERVICES_REL).query.find().toSet()
 
     val unit: String?
         get() {
@@ -100,6 +123,12 @@ class ParseService constructor() : ParseObject() {
         get() = getJSONObject(REQUIRES_JSON) ?: JSONObject()
 
     fun toSparceService(): SparseService = SparseService(objectId)
+
+    /*
+    var report: ClaeroReport?
+        get() = getJSONArray(REPORT_ARRAY)?.let { ClaeroReport(it) }
+        set(value) = putOrIgnore(REPORT_ARRAY, value)
+     */
 
     data class SparseService(val objectId: String) {
         companion object {

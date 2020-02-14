@@ -1,12 +1,14 @@
 package com.myclaero.claerolibrary
 
-import android.annotation.SuppressLint
-import android.content.Context
+import android.location.Location
 import android.util.Log
-import com.google.android.gms.location.LocationServices
 import com.myclaero.claerolibrary.extensions.Verified
 import com.myclaero.claerolibrary.extensions.readAll
-import com.parse.*
+import com.parse.ParseConfig
+import com.parse.ParseUser
+import khttp.get
+import khttp.post
+import khttp.put
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 import org.json.JSONArray
@@ -18,7 +20,6 @@ import java.net.URL
 import java.net.URLConnection
 import java.util.*
 import javax.net.ssl.HttpsURLConnection
-import khttp.*
 
 /**
  * The purpose of this static class is to handle all input and output from the Claero API Gateway.
@@ -250,7 +251,7 @@ class ClaeroAPI {
             }
         }
 
-        fun queryServices(vehicle: ParseVehicle?, callback: (JSONArray?, Exception?) -> Unit) {
+        fun queryServices(vehicle: Vehicle?, callback: (JSONArray?, Exception?) -> Unit) {
             queryServices(vehicle?.objectId, callback)
         }
 
@@ -261,7 +262,7 @@ class ClaeroAPI {
         /**
          * Synchronously queries the Claero API for an availability table.
          */
-        fun queryAvailability(ticket: ParseTicket): ClaeroAvailability? {
+        fun queryAvailability(ticket: Ticket): ClaeroAvailability? {
             val params = mutableMapOf<String, String>()
             ticket.objectId?.let { params.put("ticket", it) }
             ticket.location?.geoPoint?.let { params.put("lat_lng", "${it.latitude},${it.longitude}") }
@@ -274,7 +275,7 @@ class ClaeroAPI {
             return ClaeroAvailability.fromJSON(request.jsonObject)
         }
 
-        fun scheduleTicket(ticket: ParseTicket, shiftId: String): Boolean {
+        fun scheduleTicket(ticket: Ticket, shiftId: String): Boolean {
             val params = mapOf(
                 "ticket" to ticket.objectId,
                 "shift" to shiftId
@@ -288,41 +289,30 @@ class ClaeroAPI {
             return request.statusCode == 200
         }
 
-        @SuppressLint("MissingPermission")
         fun pushTicketStatus(
-            context: Context,
-            ticket: ParseTicket,
-            status: ParseTicket.TechnicianStatus,
-            callback: ((success: Boolean, e: Exception?) -> Unit)
+	        ticket: Ticket,
+	        location: Location,
+	        status: Ticket.TechnicianStatus,
+	        callback: ((success: Boolean, e: Exception?) -> Unit)
         ) {
-            if (status != ParseTicket.TechnicianStatus.DRIVING_PICKUP && status != ParseTicket.TechnicianStatus.ARRIVING_PICKUP) {
-                callback(false, null)
-                return
-            }
-
-            val locationClient = LocationServices.getFusedLocationProviderClient(context)
-            locationClient.flushLocations().addOnSuccessListener {
-                locationClient.lastLocation.addOnSuccessListener { location ->
+            doAsync {
+                try {
                     val data = mapOf(
                         "ticket" to ticket.objectId,
                         "lat" to location.latitude,
                         "lng" to location.longitude,
-                        "arrived" to (status == ParseTicket.TechnicianStatus.ARRIVING_PICKUP)
+                        "status" to status.value
                     )
 
-                    doAsync {
-                        try {
-                            val request = post(
-                                CLAERO_PUSH_TICKET,
-                                headers = claeroApiHeader,
-                                json = data
-                            )
-                            checkStatus(request.statusCode)
-                            uiThread { callback(request.statusCode == 200, null) }
-                        } catch (e: Exception) {
-                            uiThread { callback(false, e) }
-                        }
-                    }
+                    val request = post(
+                        CLAERO_PUSH_TICKET,
+                        headers = claeroApiHeader,
+                        json = data
+                    )
+                    checkStatus(request.statusCode)
+                    uiThread { callback(request.statusCode == 200, null) }
+                } catch (e: Exception) {
+                    uiThread { callback(false, e) }
                 }
             }
         }

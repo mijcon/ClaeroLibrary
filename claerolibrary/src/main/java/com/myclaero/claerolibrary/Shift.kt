@@ -2,15 +2,17 @@ package com.myclaero.claerolibrary
 
 import com.parse.*
 import com.parse.ktx.findAll
-import com.parse.ktx.getBooleanOrNull
 import com.parse.ktx.getLongOrNull
 import com.parse.ktx.putOrRemove
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import java.util.*
-import kotlin.system.measureTimeMillis
 
-@ParseClassName(ParseShift.NAME)
-class ParseShift constructor() : ParseObject() {
+@ParseClassName(Shift.NAME)
+class Shift constructor() : ParseObject() {
 
     companion object {
         const val NAME = "Shift"
@@ -22,19 +24,20 @@ class ParseShift constructor() : ParseObject() {
         const val HUB_POINT = "hub"
         const val TECH_POINT = "technician"
         const val TICKETS_REL = "tickets"
+        const val SERVICES_JSON = "services"
 
         // This function could take a hot second...
         fun getShifts(
             t0: Long,
             t1: Long,
-            callback: (shifts: Map<ParseShift, Set<ParseTicket>>?, e: Exception?) -> Unit
+            callback: (shifts: Map<Shift, Set<Ticket>>?, e: Exception?) -> Unit
         ) {
             GlobalScope.launch(Dispatchers.Main) {
                 val start = if (t0 > Int.MAX_VALUE) t0 / 1000L else t0
                 val end = if (t1 > Int.MAX_VALUE) t1 / 1000L else t1
                 try {
                     val shifts = withContext(Dispatchers.IO) {
-                        ParseQuery(ParseShift::class.java)
+                        ParseQuery(Shift::class.java)
                             .whereEqualTo(TECH_POINT, ParseUser.getCurrentUser())
                             .whereGreaterThanOrEqualTo(START_LONG, start)
                             .whereLessThanOrEqualTo(START_LONG, end)
@@ -44,16 +47,16 @@ class ParseShift constructor() : ParseObject() {
                     }
                     val shiftIds = List(shifts.size) { shifts[it].objectId }
                     val tickets = withContext(Dispatchers.IO) {
-                        ParseQuery(ParseTicket::class.java)
-                            .whereContainedIn(ParseTicket.SHIFT_POINT, shiftIds)
-                            .whereGreaterThanOrEqualTo(ParseTicket.STATUS_INT, ParseTicket.Status.OPEN.value)
-                            .whereGreaterThanOrEqualTo(ParseTicket.START_LONG, start)
-                            .whereLessThanOrEqualTo(ParseTicket.START_LONG, end)
-                            .include(ParseTicket.LOCATION_POINT)
-                            .include(ParseTicket.VEHICLE_POINT)
+                        ParseQuery(Ticket::class.java)
+                            .whereContainedIn(Ticket.SHIFT_POINT, shiftIds)
+                            .whereGreaterThanOrEqualTo(Ticket.STATUS_INT, Ticket.Status.OPEN.value)
+                            .whereGreaterThanOrEqualTo(Ticket.START_LONG, start)
+                            .whereLessThanOrEqualTo(Ticket.START_LONG, end)
+                            .include(Ticket.LOCATION_POINT)
+                            .include(Ticket.VEHICLE_POINT)
                             .findAll()
                     }
-                    val shiftMap = mutableMapOf<ParseShift, Set<ParseTicket>>()
+                    val shiftMap = mutableMapOf<Shift, Set<Ticket>>()
                     shifts.forEach { shift ->
                         shiftMap[shift] = tickets.filter { it.shift == shift.objectId }.toSet()
                     }
@@ -81,18 +84,28 @@ class ParseShift constructor() : ParseObject() {
         get() = getParseUser(TECH_POINT)
         set(value) = putOrRemove(TECH_POINT, value)
 
-    var isActive: Boolean?
-        get() = getBooleanOrNull(ACTIVE_BOOL) ?: false
-        set(value) = put(ACTIVE_BOOL, value!!)
+    var isActive: Boolean
+        get() = getBoolean(ACTIVE_BOOL)
+        set(value) = put(ACTIVE_BOOL, value)
 
-    @Deprecated(
-        "We'll avoid using this, because we had problems with too many simultaneous calls to the ParseServer.",
-        ReplaceWith("ParseShift.companion.getShifts()")
-    )
-    var tickets: MutableList<ParseTicket>
+    var services: Map<String, Boolean>
         get() {
-            val params = mapOf("shiftId" to objectId)
-            return ParseCloud.callFunction("getTickets", params)
+            val map = mutableMapOf<String, Boolean>()
+            val json = getJSONObject(SERVICES_JSON)
+
+            if (json == null) {
+                val types = ParseConfig.getCurrentConfig().getJSONArray("service_types")
+                for (i in 0.until(types.length())) {
+                    map[types.getString(i)] = false
+                }
+            } else json.keys().forEach { key -> map[key] = json.optBoolean(key) }
+
+            return map.toMap()
         }
-        set(value) = Unit
+        set(value) {
+            val json = JSONObject()
+            value.keys.forEach { k -> json.putOpt(k, value[k]) }
+            put(SERVICES_JSON, json)
+        }
+
 }

@@ -118,4 +118,50 @@
     <string name="location_nickname_hint">Location Name (e.g. \"Work\")</string>
     <string name="service_new">New Service</string>
     <string name="vehicle_vin_add">Add VIN</string>
+
+
+
+
+
+    <string name="report_fluid_na_tech">N/A</string>
+    <string name="report_fluid_na_client">Not Applicable</string>
+    <string name="report_fluid_good_tech">Clean</string>
+    <string name="report_fluid_good_client">In Good Condition</string>
+    <string name="report_fluid_moderate_tech">Moderate</string>
+    <string name="report_fluid_moderate_client">In Moderate Condition</string>
+    <string name="report_fluid_due_tech">Recommend by Condition</string>
+    <string name="report_fluid_due_client">Replace due to Fluid Condition</string>
+    <string name="report_fluid_miles_tech">Recommend by Mileage</string>
+    <string name="report_fluid_miles_client">Replace per Manufacturer</string>
+    <string name="report_fluid_warning_tech">Warning (include Note)</string>
+    <string name="report_fluid_warning_client">See Notes</string>
+
+    <string name="report_part_na_tech">N/A</string>
+    <string name="report_part_na_client">Not Applicable</string>
+    <string name="report_part_good_tech">Good</string>
+    <string name="report_part_good_client">In Good Condition</string>
+    <string name="report_part_moderate_tech">Wearing</string>
+    <string name="report_part_moderate_client">Showing Signs of Wear</string>
+    <string name="report_part_due_tech">Recommend by Condition</string>
+    <string name="report_part_due_client">Recommended due to Wear</string>
+    <string name="report_part_miles_tech">Recommend by Mileage</string>
+    <string name="report_part_miles_client">Recommended per Manufacturer</string>
+    <string name="report_part_warning_tech">Warning (include Note)</string>
+    <string name="report_part_warning_client">See Notes</string>
+
+    <string name="report_leak_na_tech">N/A</string>
+    <string name="report_leak_na_client">Not Applicable</string>
+    <string name="report_lear_none_tech">None</string>
+    <string name="report_lear_none_client">No Visible Leaks</string>
+    <string name="report_leak_minor_tech">Minor</string>
+    <string name="report_leak_minor_client">Minor Leaks - Monitor Closely</string>
+    <string name="report_leak_moderate_tech">Moderate</string>
+    <string name="report_leak_moderate_client">Moderate Leaks - Monitor Closely</string>
+    <string name="report_leak_major_tech">Major (include Note)</string>
+    <string name="report_leak_major_client">Major Leaks - Recommend Repair</string>
+    <string name="license_plate">%1$s \u2013; %2$s</string>
+    <string name="vehicle_title">%1$s %2$s %3$s</string>
+    <string name="vehicle_title_trim">%1$s %2$s %3$s %4$s</string>
+
+
 </resources>

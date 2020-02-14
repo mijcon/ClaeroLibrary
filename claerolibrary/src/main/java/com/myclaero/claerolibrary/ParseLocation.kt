@@ -3,7 +3,7 @@ package com.myclaero.claerolibrary
 import android.widget.ImageView
 import com.google.android.libraries.places.api.model.Place
 import com.myclaero.claerolibrary.extensions.dpToPx
-import com.myclaero.claerolibrary.extensions.uploadAsync
+import com.myclaero.claerolibrary.extensions.upload
 import com.parse.ParseClassName
 import com.parse.ParseGeoPoint
 import com.parse.ParseObject
@@ -49,19 +49,32 @@ class ParseLocation constructor() : ParseObject() {
     }
 
     constructor(place: Place) : this() {
-        val (lineOne, lineTwo) = place.address!!.removeSuffix(", USA").split(Regex(", "), 2)
-
         owner = ParseUser.getCurrentUser()
+        isActive = true
         nickname = place.name.toString()
         mapsName = place.name.toString()
         place.latLng?.let { geoPoint = ParseGeoPoint(it.latitude, it.longitude) }
         googleMapsId = place.id
-        isActive = true
-        addressOne = lineOne
-        addressTwo = lineTwo
         place.phoneNumber?.let { setPhone(it) }
+        place.addressComponents?.asList()?.let { components ->
+            val no = components.firstOrNull { it.types.contains("street_number") }?.name
+            // Full means Boulevard and Avenue are spelled out in street name
+            // val streetFull = components.first { it.types.contains("route") }?.name
+            val streetShort = components.firstOrNull { it.types.contains("route") }?.shortName
 
-        saveInBackground { it?.uploadAsync(TAG) }
+            val city = components.firstOrNull { it.types.contains("locality") }?.name
+            val stateShort = components.firstOrNull { it.types.contains("administrative_area_level_1") }?.shortName
+            val zip = components.firstOrNull { it.types.contains("postal_code") }?.name
+
+            if (listOf(no, streetShort, city, stateShort, zip).any { it.isNullOrBlank() }) {
+                throw InvalidLocationException()
+            }
+
+            addressOne = "$no $streetShort"
+            addressTwo = "$city, $stateShort $zip"
+        }
+
+        saveInBackground { it?.upload(TAG) }
     }
 
     var unit: String?
@@ -169,4 +182,7 @@ class ParseLocation constructor() : ParseObject() {
         )
         Picasso.get().load(mapString).into(imageView)
     }
+
+    class InvalidLocationException : InstantiationException("Invalid Place!")
+
 }

@@ -2,17 +2,15 @@ package com.myclaero.claerolibrary
 
 import com.parse.ParseClassName
 import com.parse.ParseObject
+import org.jetbrains.anko.doAsync
 import org.json.JSONObject
 
 @ParseClassName(ParseCharge.NAME)
-class ParseCharge constructor() : ParseObject() {
+class ParseCharge private constructor() : ParseObject() {
 
     companion object {
         const val NAME = "Charge"
         const val TAG = "ParseCharge"
-
-        const val MGR_ID = "o0EUUQ0EGU"
-        const val CHARGE_ID = "nAKQ8nmLXH"
     }
 
     enum class Status(val value: Int) {
@@ -66,8 +64,11 @@ class ParseCharge constructor() : ParseObject() {
         this.source = source
         this.ticket = ticket
     }
-/*
 
+
+
+
+    /*
     /**
      * Creates a pre-authorized Charge through Stripe. Only available to Clients and Managers.
      */
@@ -75,6 +76,34 @@ class ParseCharge constructor() : ParseObject() {
         // Capture ONLY works when associated with a ParseTicket and there is an existing Charge
         // Process ONLY works for Managers.
         doAsync {
+            val data = mapOf(
+                "token" to token,
+                "account_id" to accountId,
+                "test" to test
+            )
+            val request = post(
+                CLAERO_SOURCE_BANK,
+                json = data
+            )
+
+            var json: JSONObject? = null
+            var error: Exception? = null
+
+            try {
+                checkStatus(request.statusCode)
+                json = request.jsonObject
+            } catch (e: Exception) {
+                error = e
+            }
+            uiThread {
+                callback(
+                    json?.getString("stripe_bank_account_token"),
+                    json?.getString("request_id"),
+                    error
+                )
+            }
+
+
 	        var cxn: HttpsURLConnection? = null
             try {
                 val roles = ParseRole.getQuery().find()

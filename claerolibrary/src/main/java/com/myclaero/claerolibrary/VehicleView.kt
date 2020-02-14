@@ -2,11 +2,11 @@ package com.myclaero.claerolibrary
 
 import android.content.Context
 import android.graphics.Bitmap
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.content.ContextCompat
 import android.util.AttributeSet
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
 import kotlinx.android.synthetic.main.layout_vehicle.view.*
 
 
@@ -28,7 +28,7 @@ class VehicleView(context: Context, attrs: AttributeSet? = null) : ConstraintLay
             field = value
             refreshData()
         }
-    var vehicle: ParseVehicle? = null
+    var vehicle: Vehicle? = null
         set(value) {
             field = value!!
             refreshData()
@@ -42,7 +42,7 @@ class VehicleView(context: Context, attrs: AttributeSet? = null) : ConstraintLay
         // Present data on CardView
         view.textVehName.text = vehicle?.nickname ?: vehicle?.titleYmm
         view.textVehYmmt.text = vehicle?.titleYmmt
-        view.textVehPlate.text = vehicle?.getPlate(context)
+        view.textVehPlate.text = vehicle?.getLicense(context)
 
         // Hide YMMT text if YMMT == Nickname
         view.textVehYmmt.visibility = if (view.textVehName.text == view.textVehYmmt.text) TextView.GONE else TextView.VISIBLE
@@ -104,13 +104,13 @@ class VehicleView(context: Context, attrs: AttributeSet? = null) : ConstraintLay
 
     interface AddVinClickListener {
 
-        fun onClick(vehicle: ParseVehicle)
+        fun onClick(vehicle: Vehicle)
 
     }
 
     interface AddImageClickListener {
 
-        fun onClick(vehicle: ParseVehicle)
+        fun onClick(vehicle: Vehicle)
 
     }
 

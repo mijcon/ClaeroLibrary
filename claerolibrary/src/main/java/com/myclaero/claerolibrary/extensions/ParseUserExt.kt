@@ -4,22 +4,17 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.provider.MediaStore.Images.Media.getBitmap
 import android.telephony.PhoneNumberUtils
 import com.myclaero.claerolibrary.ClaeroAPI
-import com.parse.*
-import com.parse.ktx.getBooleanOrNull
+import com.parse.ParseUser
 import com.parse.ktx.getIntOrNull
-import com.parse.ktx.getLongOrNull
 import com.parse.ktx.putOrIgnore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import org.jetbrains.anko.doAsync
-import org.jetbrains.anko.uiThread
 
-private const val PHONE_LONG = "phone"
+private const val PHONE_STR = "phone"
 private const val FAMILY_NAME_STR = "familyName"
 private const val GIVEN_NAME_STR = "givenName"
 private const val EMAIL_VERIFIED_BOOL = "emailVerified"
@@ -33,10 +28,10 @@ enum class Verified {
     BOTH
 }
 
-fun ParseUser.updateEmail(email: String) {
-    if (this.email.trim() != email.trim()) {
-        this.email = email.trim()
-    }
+fun ParseUser.updateEmail(email: String): Boolean {
+    val change = this.email.trim() != email.trim()
+    if (change) this.email = email.trim()
+    return change
 }
 
 fun ParseUser.isProfileComplete(): Boolean {
@@ -117,11 +112,7 @@ fun ParseUser.checkTextTokenAsync(code: String, callback: ((matches: Boolean, e:
 }
 
 val ParseUser.emailVerified: Boolean
-    get() = getBooleanOrNull(EMAIL_VERIFIED_BOOL) ?: false
-
-var ParseUser.phone: Long?
-    get() = getLongOrNull(PHONE_LONG)
-    set(value) = putOrIgnore(PHONE_LONG, value)
+    get() = getBoolean(EMAIL_VERIFIED_BOOL)
 
 var ParseUser.familyName: String?
     get() = getString(FAMILY_NAME_STR)
@@ -131,7 +122,12 @@ var ParseUser.givenName: String?
     get() = getString(GIVEN_NAME_STR)
     set(value) = putOrIgnore(GIVEN_NAME_STR, value)
 
-fun ParseUser.setPhone(phone: String) = putOrIgnore(PHONE_LONG, phone.filter { it.isDigit() }.toLongOrNull())
+fun ParseUser.setPhone(phone: String): Boolean {
+    val num = phone.filter { it.isDigit() }.toLongOrNull()
+    val change = num != this.phone
+    if (change) putOrIgnore(PHONE_LONG, phone.filter { it.isDigit() }.toLongOrNull())
+    return change
+}
 
-fun ParseUser.getPhone() =
-    getLongOrNull(PHONE_LONG)?.let { "+" + PhoneNumberUtils.formatNumber(it.toString(), "US") } ?: ""
+val ParseUser.phone: String?
+    get() = getString(PHONE_STR)?.let { "+" + PhoneNumberUtils.formatNumber(it, "US") }

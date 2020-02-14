@@ -29,12 +29,15 @@
 	<string name="intro_technology_header">Cuidado de coche, del siglo XXI</string>
 	<string name="intro_swipe">Deslice a la derecha para continuar</string>
 	<string name="intro_peace_subheader">Tranquilidad inigualable</string>
-	<string name="intro_convenience_subheader">Diseñado por la conveniencia suya</string>
+	<string name="intro_convenience_subheader">Diseñado para la conveniencia suya</string>
 	<string name="intro_continue_subheader">¡Adelante!</string>
 	<string name="action_log_out">Cerrar Sesión</string>
 	<string name="or_sign_up">o regístrese</string>
 	<string name="or_log_in">o inicie sessión</string>
-	<string name="title_activity_login">Iniciar Sesión</string>
+	<string name="title_activity_login">Iniciar Sesión con Claero</string>
 	<string name="state">Estado</string>
 	<string name="sign_up">Regístrese</string>
+	<string name="license_plate">%1$s \u2013; %2$s</string>
+	<string name="vehicle_title">%1$s %2$s %3$s</string>
+	<string name="vehicle_title_trim">%1$s %2$s %3$s %4$s</string>
 </resources>
