@@ -4,7 +4,7 @@ import com.parse.ParseException
 import com.parse.ParseObject
 import com.parse.ParseQuery
 
-val <T: ParseObject> ParseQuery<T>.firstOrNull : ParseObject?
+val <T: ParseObject> ParseQuery<T>.firstOrNull : T?
 	get() = try {
 		first
 	} catch (e: ParseException) {

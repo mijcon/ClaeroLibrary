@@ -1,5 +1,6 @@
-package com.myclaero.claerolibrary
+package com.myclaero.claerolibrary.core
 
+import com.myclaero.claerolibrary.ParseCharge
 import com.myclaero.claerolibrary.extensions.toList
 import com.parse.FindCallback
 import com.parse.ParseClassName
@@ -10,12 +11,12 @@ import com.parse.ktx.putOrIgnore
 import org.json.JSONArray
 import org.json.JSONObject
 
-@ParseClassName(ParseInvoice.NAME)
-class ParseInvoice constructor() : ParseObject() {
+@ParseClassName(Invoice.NAME)
+class Invoice constructor() : ParseObject() {
 
     companion object {
         const val NAME = "Invoice"
-        const val TAG = "ParseInvoice"
+        const val TAG = "Invoice"
 
         // The Parse Server's key for each field.
         // Each is named "KEY_TYPE" so it's always clear what data-type to expect.
@@ -56,7 +57,9 @@ class ParseInvoice constructor() : ParseObject() {
             .toMutableList()
 
     val charges: MutableList<ParseCharge>
-        get() = getRelation<ParseCharge>(CHARGE_REL).query.find()
+        get() = getRelation<ParseCharge>(
+            CHARGE_REL
+        ).query.find()
 
     fun getChargesAsync(callback: FindCallback<ParseCharge>) {
         getRelation<ParseCharge>(CHARGE_REL).query.findInBackground(callback)

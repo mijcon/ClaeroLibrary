@@ -1,13 +1,11 @@
-package com.myclaero.claerolibrary
+package com.myclaero.claerolibrary.core
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import com.myclaero.claerolibrary.extensions.firstOrNull
-import com.myclaero.claerolibrary.extensions.getBitmap
-import com.myclaero.claerolibrary.extensions.resize
-import com.myclaero.claerolibrary.extensions.upload
+import com.myclaero.claerolibrary.R
+import com.myclaero.claerolibrary.extensions.*
 import com.parse.*
 import com.parse.ktx.putOrIgnore
 import com.parse.ktx.putOrRemove
@@ -26,9 +24,6 @@ class Vehicle constructor(): ParseObject() {
 	companion object {
 		const val NAME = "Vehicle"
 		const val TAG = "Vehicle"
-
-		const val THUMB_HEIGHT = 84
-		const val THUMB_WIDTH = 112
 
 		// The Parse Server's key for each field.
 		// Each is named "KEY_TYPE" so it's always clear what data-type to expect.
@@ -76,16 +71,39 @@ class Vehicle constructor(): ParseObject() {
 			.find()
 
 		/**
-		 * Synchronously fetches all active Vehicles associated with the current ParseUser. See [getAllAsync] for asynchronous equivalent.
+		 * Synchronously fetches all active Vehicles associated with the current ParseUser.
+		 *
+		 * @param user The ParseUser we want to restrict the search to. This field is important
+		 * for Technicians and Managers, to avoid simply showing all Vehicles for which
+		 * they have visibility.
 		 * @return A mutable list of Vehicles.
-		 * @throws ParseException Throws an exception if no Vehicles can be found.
+		 * @throws ParseException Throws an exception if no Vehicles can be found, or if some other
+		 * error occurs.
 		 */
-		fun fetch() = ParseQuery(Vehicle::class.java)
-			.whereEqualTo(OWNER_POINT, ParseUser.getCurrentUser())
-			.whereEqualTo(ACTIVE_BOOL, true)
-			.orderByAscending(ORDER_INT)
-			.fromNetwork()
-			.find()
+		fun fetch(user: ParseUser = ParseUser.getCurrentUser()) =
+			ParseQuery(Vehicle::class.java)
+				.whereEqualTo(OWNER_POINT, ParseUser.getCurrentUser())
+				.whereEqualTo(ACTIVE_BOOL, true)
+				.orderByAscending(ORDER_INT)
+				.fromNetwork()
+				.find()
+
+		/**
+		 * Asynchronously fetches all active Vehicles associated with the current ParseUser.
+		 *
+		 * @param user The ParseUser we want to restrict the search to. This field is important
+		 * for Technicians and Managers, to avoid simply showing all Vehicles for which
+		 * they have visibility.
+		 * @return The Kotlin Coroutine [Deferred] for the query.
+		 * @throws ParseException Throws an exception if no Vehicle can be found, or some other
+		 * error occurs.
+		 */
+		fun fetchAsync(user: ParseUser = ParseUser.getCurrentUser()): Deferred<List<Vehicle>> =
+			GlobalScope.async(Dispatchers.IO) {
+				fetch(
+					user
+				)
+			}
 
 		/**
 		 * Asynchronously fetches all active Vehicles associated with the current ParseUser. See [getAll] for synchronous equivalent.
@@ -101,49 +119,88 @@ class Vehicle constructor(): ParseObject() {
 				.findInBackground(callback)
 
 		/**
-		 * Asynchronously fetches all active Vehicles associated with the current ParseUser. See [getAll] for synchronous equivalent.
+		 * Asynchronously fetches all active Vehicles associated with the current ParseUser.
+		 *
+		 * @param user The ParseUser we want to restrict the search to. This field is important
+		 * for Technicians and Managers, to avoid simply showing all Vehicles for which
+		 * they have visibility.
 		 * @param callback A lambda function called upon completion of asynchronous query.
 		 */
-		fun fetchAsync(callback: (list: MutableList<Vehicle>?, e: ParseException?) -> Unit) =
-			ParseQuery(Vehicle::class.java)
-				.whereEqualTo(OWNER_POINT, ParseUser.getCurrentUser())
-				.whereEqualTo(ACTIVE_BOOL, true)
-				.orderByAscending(ORDER_INT)
-				.fromNetwork()
-				.findInBackground(callback)
+		fun fetchAsync(
+			user: ParseUser = ParseUser.getCurrentUser(),
+			callback: FindCallback<Vehicle>
+		) {
+			GlobalScope.launch {
+				try {
+					callback.done(
+						fetchAsync(
+							user
+						).await(), null)
+				} catch (e: ParseException) {
+					callback.done(null, e)
+				}
+			}
+		}
 
 
 		/**
 		 * Synchronously fetches the Vehicle with a matching VIN.
+		 *
 		 * @param vin The VIN of the desired vehicle.
 		 * @param user The ParseUser representing the owner of the vehicle in question.
 		 * @return The matching Vehicle, if it exists and is associated with the current ParseUser.
 		 */
-		fun get(vin: String, user: ParseUser = ParseUser.getCurrentUser()) =
-			ParseQuery(Vehicle::class.java)
+		fun get(vin: String, user: ParseUser = ParseUser.getCurrentUser()): Vehicle? =
+			ParseQuery<Vehicle>(
+				Vehicle::class.java)
 				.whereEqualTo(VIN_STR, vin)
 				.whereEqualTo(OWNER_POINT, ParseUser.getCurrentUser())
 				.firstOrNull
 
 		/**
 		 * Asynchronously fetches the Vehicle with a matching VIN.
+		 *
+		 * @param vin The VIN of the desired vehicle.
+		 * @param user The ParseUser representing the owner of the vehicle in question.
+		 * @return The Kotlin Coroutine [Deferred] for the query.
+		 */
+		fun getAsync(
+			vin: String,
+			user: ParseUser = ParseUser.getCurrentUser()
+		): Deferred<Vehicle?> =
+			GlobalScope.async(Dispatchers.IO) {
+				get(
+					vin,
+					user
+				)
+			}
+
+		/**
+		 * Asynchronously fetches the Vehicle with a matching VIN.
 		 * @param vin The VIN of the desired vehicle.
 		 * @param user The ParseUser representing the owner of the vehicle in question.
 		 * @param callback The lambda to invoke upon completion of the background task.
-		 * @return The matching Vehicle, if it exists and is associated with the current ParseUser.
 		 */
 		fun getAsync(
 			vin: String,
 			user: ParseUser = ParseUser.getCurrentUser(),
 			callback: GetCallback<Vehicle>
-		) =
-			ParseQuery(Vehicle::class.java)
-				.whereEqualTo(VIN_STR, vin)
-				.whereEqualTo(OWNER_POINT, ParseUser.getCurrentUser())
-				.getFirstInBackground(callback)
+		) {
+			GlobalScope.launch {
+				try {
+					callback.done(
+						getAsync(
+							vin,
+							user
+						).await(), null)
+				} catch (e: ParseException) {
+					callback.done(null, e)
+				}
+			}
+		}
 
 		/**
-		 * Asynchronously fetches thumbnails for the corresponding Vehicles. See [getThumbnailInBackground] to fetch a thumbnail for a specific Vehicle.
+		 * Asynchronously fetches thumbnails for the corresponding Vehicles. See [getThumbnailAsync] to fetch a thumbnail for a specific Vehicle.
 		 * @param vehicles A list of the Vehicles for which the desired thumbnails are associated.
 		 * @param callback A lambda function called upon completion of the asynchronous query.
 		 */
@@ -168,14 +225,6 @@ class Vehicle constructor(): ParseObject() {
 				}
 			}
 		}
-	}
-
-	enum class EngineConfig(val key: String) {
-		L("L"), // Inline
-		V("V"), // Traditional V
-		H("H"), // Boxer
-		W("W"), // W (double-V)
-		R("R")  // Wankel/Rotary
 	}
 
 	enum class Transmission(val key: String) {
@@ -295,7 +344,8 @@ class Vehicle constructor(): ParseObject() {
 			make = json.getString("make")
 			model = json.getString("model")
 			trim = json.getString("trim_level")
-			engine = json.getString("engine")
+			engine =
+				Engine(json.getString("engine"))
 			drive = when (json.getString("drive_type")) {
 				"FWD" -> Drive.FWD
 				"AWD" -> Drive.AWD
@@ -391,39 +441,13 @@ class Vehicle constructor(): ParseObject() {
 	/**
 	 * The String representation of the [Vehicle]'s engine, or null if unset.
 	 */
-	var engine: String?
-		get() = getString(ENGINE_STR)
-		private set(engine) = putOrIgnore(ENGINE_STR, engine)
-
-	/**
-	 * The approximate displacement of the engine, in liters.
-	 */
-	val displacement: Float?
-		get() = engine?.split(' ')?.firstOrNull()?.dropLast(1)?.toFloatOrNull()
-
-	/**
-	 * The [EngineConfig] for the [Vehicle], if able to be determined from the available vehicle
-	 * specifications JSON.
-	 */
-	val engineConfig: EngineConfig?
-		get() = engine?.split(' ')
-			?.get(1)
-			?.substring(0, 1)
-			?.let { key ->
-				EngineConfig.values().first { it.key == key }
-			}
-
-	/**
-	 * A Boolean representing whether the Engine is turbocharged.
-	 */
-	val isTurbo: Boolean?
-		get() = engine?.contains("T")
-
-	/**
-	 * A Boolean representing whether the Engine is supercharged.
-	 */
-	val isSuper: Boolean?
-		get() = engine?.contains("S")
+	var engine: Engine?
+		get() = getString(ENGINE_STR)?.let {
+			Engine(
+				it
+			)
+		}
+		private set(engine) = putOrIgnore(ENGINE_STR, engine?.toString())
 
 	/**
 	 * The [Drive] type for the [Vehicle], or null if unset.
@@ -444,50 +468,64 @@ class Vehicle constructor(): ParseObject() {
 		private set(trans) = putOrIgnore(TRANS_STR, trans?.key)
 
 	/**
-	 * A convenience function for [Ticket.getTickets]; synchronously retrieves a list of all
+	 * A convenience function for [Ticket.fetch]; synchronously retrieves a list of all
 	 * associated Tickets, from newest to oldest.
 	 */
 	val tickets: List<Ticket>
-		get() = Ticket.getTickets(this, true)
+		get() = Ticket.fetch(this, true)
 
 	/**
-	 * A convenience function for [Ticket.getTicketsAsync]; retrieves a list of all
+	 * A convenience function for [Ticket.fetchAsync]; retrieves a list of all
 	 * associated Tickets, from newest to oldest.
 	 */
 	fun getTicketsAsync(callback: FindCallback<Ticket>) =
-		Ticket.getTicketsAsync(this, true, callback)
+		Ticket.fetchAsync(
+			this,
+			true,
+			callback
+		)
 
 	/**
-	 * A synchronous convenience property for [Ticket.getTickets] which retrieves all Tickets
+	 * A synchronous convenience property for [Ticket.fetch] which retrieves all Tickets
 	 * with an "open" Status (NEW, DRAFT, OPEN, PENDING).
 	 */
 	val openTickets: List<Ticket>
-		get() = Ticket.getTickets(this)
+		get() = Ticket.fetch(this, false)
 
 	/**
-	 * An asynchronous convenience function for [Ticket.getTicketsAsync] which retrieves all Tickets
+	 * An asynchronous convenience function for [Ticket.fetchAsync] which retrieves all Tickets
 	 * with an "open" Status (NEW, DRAFT, OPEN, PENDING).
 	 *
 	 * @param callback The lambda to invoke upon completion of the search.
 	 */
 	fun getOpenTicketsAsync(callback: FindCallback<Ticket>) =
-		Ticket.getTicketsAsync(this, false, callback)
+		Ticket.fetchAsync(
+			this,
+			false,
+			callback
+		)
 
 	/**
-	 * A convenience property for the synchronous function [Service.getServices]. Retrieves a list
+	 * A convenience property for the synchronous function [Service.fetch]. Retrieves a list
 	 * of all available Services that may apply to this Vehicle.
 	 */
 	val services: List<Service>
-		get() = Service.getServices(this)
+		get() = Service.fetch(this)
 
 	/**
-	 * An asynchronous convenience function for [Service.getServicesAsync]. Retrieves a list
+	 * An asynchronous convenience function for [Service.fetchAsync]. Retrieves a list of all
+	 * available Services that may apply to this [Vehicle].
+	 */
+	fun getServicesAsync(): Deferred<List<Service>> = Service.fetchAsync(this)
+
+	/**
+	 * An asynchronous convenience function for [Service.fetchAsync]. Retrieves a list
 	 * of all available Services that may apply to this Vehicle.
 	 *
 	 * @param callback The lambda to invoke upon completion of the query.
 	 */
 	fun getServicesAsync(callback: FindCallback<Service>) =
-		Service.getServicesAsync(this, callback)
+		Service.fetchAsync(this, callback)
 
 	/**
 	 * The full size [Bitmap] for the [Vehicle], or null.
@@ -505,13 +543,24 @@ class Vehicle constructor(): ParseObject() {
 	/**
 	 * Asynchronously retrieves the [Vehicle]'s full size image.
 	 *
+	 * @return The Kotlin Coroutine [Deferred] managing the retrieval of the [Bitmap].
+	 */
+	fun getImageAsync(): Deferred<Bitmap?> = GlobalScope.async {
+		val data = withContext(Dispatchers.IO) { getParseFile(IMAGE_FILE)?.data }
+		data?.let {
+			BitmapFactory.decodeByteArray(it, 0, it.size)
+		}
+	}
+
+	/**
+	 * Asynchronously retrieves the [Vehicle]'s full size image.
+	 *
 	 * @param callback The lambda to invoke upon completion of the task.
 	 */
 	fun getImageAsync(callback: GetBitmapCallback) {
 		GlobalScope.launch {
 			try {
-				val image = withContext(Dispatchers.IO) { image }
-				callback.done(image, null)
+				callback.done(getImageAsync().await(), null)
 			} catch (e: Exception) {
 				callback.done(null, e)
 			}
@@ -524,22 +573,34 @@ class Vehicle constructor(): ParseObject() {
 	 * @param bitmap The Bitmap to be saved to the vehicle.
 	 * @param thumbWidth The desired width, in pixels, of the thumbnail.
 	 * @param thumbHeight The desired height, in pixels, of the thumbnail.
+	 * @return The Kotlin Coroutine [Deferred] for the task.
+	 */
+	fun setImageAsync(bitmap: Bitmap, thumbWidth: Int, thumbHeight: Int): Deferred<Unit> =
+		GlobalScope.async {
+			val thumb = async(Dispatchers.Default) { bitmap.resize(thumbWidth, thumbHeight) }
+			val fullFile = async(Dispatchers.IO) { bitmap.upload() }
+			val thumbFile = async(Dispatchers.IO) { thumb.await().upload() }
+			put(THUMB_FILE, thumbFile.await())
+			put(IMAGE_FILE, fullFile.await())
+			return@async withContext(Dispatchers.IO) { save() }
+		}
+
+	/**
+	 * Asynchronously sets the [Vehicle]'s full size and thumbnail images from the given [Bitmap].
+	 *
+	 * @param bitmap The Bitmap to be saved to the vehicle.
+	 * @param thumbWidth The desired width, in pixels, of the thumbnail.
+	 * @param thumbHeight The desired height, in pixels, of the thumbnail.
 	 * @param callback The lambda to invoke upon completion.
 	 * @return The thumbnail version of the provided image.
 	 */
 	fun setImageAsync(bitmap: Bitmap, thumbWidth: Int, thumbHeight: Int, callback: SaveCallback) =
-		bitmap.resize(thumbWidth, thumbHeight).also { thumb ->
-			GlobalScope.launch {
-				try {
-					val fullFile = async(Dispatchers.IO) { bitmap.upload() }
-					val thumbFile = async(Dispatchers.IO) { thumb.upload() }
-					put(THUMB_FILE, thumbFile.await())
-					put(IMAGE_FILE, fullFile.await())
-					withContext(Dispatchers.IO) { save() }
-					callback.done(null)
-				} catch (e: ParseException) {
-					callback.done(e)
-				}
+		GlobalScope.launch {
+			try {
+				setImageAsync(bitmap, thumbWidth, thumbHeight).await()
+				callback.done(null)
+			} catch (e: ParseException) {
+				callback.done(e)
 			}
 		}
 
@@ -554,7 +615,13 @@ class Vehicle constructor(): ParseObject() {
 	 * @param callback The lambda to invoke upon completion.
 	 * @return The thumbnail version of the provided image.
 	 */
-	fun setImageAsync(context: Context, uri: Uri, thumbWidth: Int, thumbHeight: Int, callback: SaveCallback) =
+	fun setImageAsync(
+		context: Context,
+		uri: Uri,
+		thumbWidth: Int,
+		thumbHeight: Int,
+		callback: SaveCallback
+	) =
 		context.getBitmap(uri)?.let { setImageAsync(it, thumbWidth, thumbHeight, callback) }
 
 	/**
@@ -573,23 +640,69 @@ class Vehicle constructor(): ParseObject() {
 	/**
 	 * Asynchronously retrieves the [Vehicle]'s thumbnail.
 	 *
+	 * @return The Kotlin Coroutine [Deferred] result of the task.
+	 */
+	fun getThumbnailAsync(): Deferred<Bitmap?> =
+		GlobalScope.async(Dispatchers.Default) {
+			val data = withContext(Dispatchers.IO) { getParseFile(THUMB_FILE)?.data }
+			data?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+		}
+
+	/**
+	 * Asynchronously retrieves the [Vehicle]'s thumbnail.
+	 *
 	 * @param callback The lambda to invoke upon completion of the background task.
 	 */
-	fun getThumbnailInBackground(callback: GetBitmapCallback) {
+	fun getThumbnailAsync(callback: GetBitmapCallback) {
 		GlobalScope.launch(Dispatchers.Main) {
 			try {
-				val data = withContext(Dispatchers.IO) { getParseFile(THUMB_FILE)?.data }
-				val thumbnail = data?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
-				callback.done(thumbnail, null)
+				callback.done(getThumbnailAsync().await(), null)
 			} catch (e: Exception) {
 				callback.done(null, e)
 			}
 		}
 	}
 
-	interface GetBitmapCallback {
+	data class Engine(private val string: String) {
 
-		fun done(bitmap: Bitmap?, e: Exception?)
+		enum class EngineConfig(val key: String) {
+			L("L"), // Inline
+			V("V"), // Traditional V
+			H("H"), // Boxer
+			W("W"), // W (double-V)
+			R("R")  // Wankel/Rotary
+		}
+
+		/**
+		 * The approximate displacement of the engine, in liters.
+		 */
+		val displacement: Float?
+			get() = string.split(' ').firstOrNull()?.dropLast(1)?.toFloatOrNull()
+
+		/**
+		 * The [EngineConfig] for the [Vehicle], if able to be determined from the available vehicle
+		 * specifications JSON.
+		 */
+		val engineConfig: EngineConfig?
+			get() = string.split(' ')[1]
+				.substring(0, 1)
+				.let { key ->
+					EngineConfig.values().first { it.key == key }
+				}
+
+		/**
+		 * A Boolean representing whether the Engine is turbocharged.
+		 */
+		val isTurbo: Boolean?
+			get() = string.contains("T")
+
+		/**
+		 * A Boolean representing whether the Engine is supercharged.
+		 */
+		val isSuper: Boolean?
+			get() = string.contains("S")
+
+		override fun toString() = string
 
 	}
 

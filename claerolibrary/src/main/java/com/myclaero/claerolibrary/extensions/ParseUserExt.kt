@@ -9,10 +9,8 @@ import com.myclaero.claerolibrary.ClaeroAPI
 import com.parse.ParseUser
 import com.parse.ktx.getIntOrNull
 import com.parse.ktx.putOrIgnore
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
+import com.parse.ktx.putOrRemove
+import kotlinx.coroutines.*
 
 private const val PHONE_STR = "phone"
 private const val FAMILY_NAME_STR = "familyName"
@@ -83,30 +81,38 @@ fun ParseUser.checkVerificationAsync(callback: (email: Boolean, phone: Boolean, 
 
 fun ParseUser.checkVerification(): Verified = ClaeroAPI.getVerificationStatus(this)
 
-fun ParseUser.sendTextTokenAsync(token: String? = null, callback: ((e: Exception?) -> Unit)? = null) {
-    doAsync {
-        try {
-            val response = ClaeroAPI.verifyText(objectId, token)
-            uiThread { callback?.invoke(null) }
-        } catch (e: Exception) {
-            uiThread { callback?.invoke(e) }
-        }
-    }
-}
-
-fun ParseUser.sendTextToken(token: String? = null): Boolean {
+fun ParseUser.requestToken(token: String? = null): Boolean {
     val response = ClaeroAPI.verifyText(objectId, token)
     return if (response.has("success")) response.getBoolean("success") else false
 }
 
-fun ParseUser.checkTextTokenAsync(code: String, callback: ((matches: Boolean, e: Exception?) -> Unit)? = null) {
-    doAsync {
+fun ParseUser.requestTokenAsync(token: String? = null, callback: ((e: Exception?) -> Unit)? = null) {
+    GlobalScope.launch(Dispatchers.Main) {
         try {
-            val response = ClaeroAPI.verifyText(objectId, null, code)
-            val matches = response.getBoolean("match")
-            uiThread { callback?.invoke(matches, null) }
+            val response = withContext(Dispatchers.IO) {
+                ClaeroAPI.verifyText(objectId, token)
+            }
+            callback?.invoke(null)
         } catch (e: Exception) {
-            uiThread { callback?.invoke(false, e) }
+            callback?.invoke(e)
+        }
+    }
+}
+
+fun ParseUser.verifyToken(code: String) {
+    TODO()
+}
+
+fun ParseUser.verifyTokenAsync(code: String, callback: ((matches: Boolean, e: Exception?) -> Unit)? = null) {
+    GlobalScope.launch(Dispatchers.Main) {
+        try {
+            val response = withContext(Dispatchers.IO) {
+                ClaeroAPI.verifyText(objectId, null, code)
+            }
+            val matches = response.getBoolean("match")
+            callback?.invoke(matches, null)
+        } catch (e: Exception) {
+            callback?.invoke(false, e)
         }
     }
 }
@@ -122,12 +128,22 @@ var ParseUser.givenName: String?
     get() = getString(GIVEN_NAME_STR)
     set(value) = putOrIgnore(GIVEN_NAME_STR, value)
 
+/**
+ * Sets the User's phone.
+ *
+ * This is one way we will avoid marking the phone number as unverified accidentally.
+ *
+ * @param phone The String representation of the phone number.
+ * @return The Boolean representing whether or not the new phone successfully replaced the old one.
+ */
 fun ParseUser.setPhone(phone: String): Boolean {
-    val num = phone.filter { it.isDigit() }.toLongOrNull()
-    val change = num != this.phone
-    if (change) putOrIgnore(PHONE_LONG, phone.filter { it.isDigit() }.toLongOrNull())
+    val change = phone != this.phone
+    if (change) putOrRemove(PHONE_STR, phone)
     return change
 }
 
+/**
+ * The User's phone number in String format, or null if not set.
+ */
 val ParseUser.phone: String?
     get() = getString(PHONE_STR)?.let { "+" + PhoneNumberUtils.formatNumber(it, "US") }

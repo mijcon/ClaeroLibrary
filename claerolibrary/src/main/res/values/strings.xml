@@ -163,5 +163,31 @@
     <string name="vehicle_title">%1$s %2$s %3$s</string>
     <string name="vehicle_title_trim">%1$s %2$s %3$s %4$s</string>
 
+    <string name="gearbox_fdiff">Front Differential</string>
+    <string name="gearbox_rdiff">Rear Differential</string>
+    <string name="gearbox_tcase">Transfer Case</string>
+    <string name="gearbox_fdrive">Final Drive</string>
+
+    <string name="serviceable_rec_replace_mileage">Replace due to Mileage</string>
+    <string name="serviceable_rec_replace_condition">Replace due to Condition</string>
+    <string name="serviceable_rec_replace_age">Replace due to Age</string>
+    <string name="serviceable_rec_okay">Good Condition</string>
+    <string name="serviceable_rec_repair">Recommend Repair</string>
+    <string name="serviceable_rec_monitor">Monitor Condition</string>
+
+    <string name="transmission_automatic">Automatic</string>
+    <string name="transmission_manual">Automatic</string>
+    <string name="transmission_cvt">CVT</string>
+    <string name="transmission_dct">Dual-Clutch</string>
+    <string name="transmission_direct">Direct-Drive</string>
+
+    <string name="steering_hydraulic">Hydraulic</string>
+    <string name="steering_electronic">Electronic</string>
+    <string name="steering_manual">Manual</string>
+
+	<string name="wiper_driver">Driver\'s</string>
+    <string name="wiper_passenger">Passenger\'s</string>
+    <string name="wiper_rear">Rear</string>
+
 
 </resources>

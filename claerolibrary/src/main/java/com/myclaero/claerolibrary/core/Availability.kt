@@ -1,27 +1,28 @@
-package com.myclaero.claerolibrary
+package com.myclaero.claerolibrary.core
 
 import org.json.JSONArray
 import org.json.JSONObject
 
-data class ClaeroAvailability(val open: Int, val close: Int) {
+data class Availability(val open: Int, val close: Int) {
 
     companion object {
         const val TAG = "ClaeroAvailability"
 
-        fun fromJSON(json: JSONObject): ClaeroAvailability {
-            val availability = ClaeroAvailability(
+        fun fromJSON(json: JSONObject): Availability {
+            val availability = Availability(
                 json.getInt("open"),
                 json.getInt("close")
             )
             availability.addAllShifts(json.getJSONArray("shifts"))
             return availability
         }
+
     }
 
-    val shifts: MutableSet<ClaeroShift> = mutableSetOf()
+    val shifts: MutableSet<Shift> = mutableSetOf()
 
     private fun addShift(json: JSONObject) {
-        shifts.add(ClaeroShift.fromJSON(json))
+        shifts.add(Shift.fromJSON(json))
     }
 
     private fun addAllShifts(jsonArray: JSONArray) {

@@ -1,7 +1,8 @@
-package com.myclaero.claerolibrary
+package com.myclaero.claerolibrary.core
 
 import android.widget.ImageView
 import com.google.android.libraries.places.api.model.Place
+import com.myclaero.claerolibrary.BuildConfig
 import com.myclaero.claerolibrary.extensions.dpToPx
 import com.myclaero.claerolibrary.extensions.upload
 import com.parse.ParseClassName
@@ -12,12 +13,12 @@ import com.parse.ktx.putOrIgnore
 import com.squareup.picasso.Picasso
 import org.json.JSONObject
 
-@ParseClassName(ParseLocation.NAME)
-class ParseLocation constructor() : ParseObject() {
+@ParseClassName(Locus.NAME)
+class Locus constructor() : ParseObject() {
 
     companion object {
         const val NAME = "Location"
-        const val TAG = "ParseLocation"
+        const val TAG = "Locus"
 
         // The Parse Server's key for each field.
         // Each is named "KEY_TYPE" so it's always clear what data-type to expect.
@@ -78,7 +79,9 @@ class ParseLocation constructor() : ParseObject() {
     }
 
     var unit: String?
-        get() = if (getString(UNIT_STR).isNullOrBlank()) null else getString(UNIT_STR)
+        get() = if (getString(UNIT_STR).isNullOrBlank()) null else getString(
+	        UNIT_STR
+        )
         set(value) = putOrIgnore(UNIT_STR, value)
 
     var owner: ParseUser?
@@ -90,7 +93,9 @@ class ParseLocation constructor() : ParseObject() {
         set(value) = put(ACTIVE_BOOL, value)
 
     var nickname: String
-        get() = getString(NICKNAME_STR) ?: getString(ADDRESS_LINE_ONE_STR)!!
+        get() = getString(NICKNAME_STR) ?: getString(
+	        ADDRESS_LINE_ONE_STR
+        )!!
         set(value) = putOrIgnore(NICKNAME_STR, value)
 
     var addressOne: String
@@ -155,9 +160,9 @@ class ParseLocation constructor() : ParseObject() {
 
     fun mapInto(imageView: ImageView, width: Int = 96, height: Int = 72) {
         val mapString = String.format(
-            BuildConfig.HERE_THUMB_URL,
-            BuildConfig.HERE_APP_ID,
-            BuildConfig.HERE_APP_CODE,
+	        BuildConfig.HERE_THUMB_URL,
+	        BuildConfig.HERE_APP_ID,
+	        BuildConfig.HERE_APP_CODE,
             250,
             width.dpToPx(),
             height.dpToPx(),
@@ -170,9 +175,9 @@ class ParseLocation constructor() : ParseObject() {
 
     fun mapLargeInto(imageView: ImageView, width: Int = 250, height: Int = 350) {
         val mapString = String.format(
-            BuildConfig.HERE_THUMB_URL,
-            BuildConfig.HERE_APP_ID,
-            BuildConfig.HERE_APP_CODE,
+	        BuildConfig.HERE_THUMB_URL,
+	        BuildConfig.HERE_APP_ID,
+	        BuildConfig.HERE_APP_CODE,
             250,
             width.dpToPx(),
             height.dpToPx(),

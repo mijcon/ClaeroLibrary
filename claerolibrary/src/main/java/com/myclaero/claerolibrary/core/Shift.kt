@@ -1,5 +1,8 @@
-package com.myclaero.claerolibrary
+package com.myclaero.claerolibrary.core
 
+import com.myclaero.claerolibrary.ParseHub
+import com.myclaero.claerolibrary.extensions.timeInSecs
+import com.myclaero.claerolibrary.extensions.toList
 import com.parse.*
 import com.parse.ktx.findAll
 import com.parse.ktx.getLongOrNull
@@ -16,7 +19,7 @@ class Shift constructor() : ParseObject() {
 
     companion object {
         const val NAME = "Shift"
-        const val TAG = "ParseShift"
+        const val TAG = "Shift"
 
         const val ACTIVE_BOOL = "active"
         const val START_LONG = "start"
@@ -50,15 +53,15 @@ class Shift constructor() : ParseObject() {
                         ParseQuery(Ticket::class.java)
                             .whereContainedIn(Ticket.SHIFT_POINT, shiftIds)
                             .whereGreaterThanOrEqualTo(Ticket.STATUS_INT, Ticket.Status.OPEN.value)
-                            .whereGreaterThanOrEqualTo(Ticket.START_LONG, start)
-                            .whereLessThanOrEqualTo(Ticket.START_LONG, end)
-                            .include(Ticket.LOCATION_POINT)
+                            .whereGreaterThanOrEqualTo(Ticket.START_DATE, start)
+                            .whereLessThanOrEqualTo(Ticket.START_DATE, end)
+                            .include(Ticket.PICKUP_POINT)
                             .include(Ticket.VEHICLE_POINT)
                             .findAll()
                     }
                     val shiftMap = mutableMapOf<Shift, Set<Ticket>>()
                     shifts.forEach { shift ->
-                        shiftMap[shift] = tickets.filter { it.shift == shift.objectId }.toSet()
+                        shiftMap[shift] = tickets.filter { it.shift?.objectId == shift.objectId }.toSet()
                     }
                     callback(shiftMap.toMap(), null)
                 } catch (e: Exception) {
@@ -66,7 +69,23 @@ class Shift constructor() : ParseObject() {
                 }
             }
         }
+
+        internal fun fromJSON(json: JSONObject): Shift {
+            val availability = json.getJSONArray("availability").toList<Int>()
+            return Shift(
+	            json.getString("objectId"),
+	            json.getInt("travelTime"),
+	            json.getLong("start"),
+	            availability
+            )
+        }
+
     }
+
+    constructor(val objectId: String, val travel: Int, val calendar: Calendar, val availability: List<Int>)
+
+    constructor(objectId: String, travel: Int, date: Long, availability: List<Int>):
+            this(objectId, travel, Calendar.getInstance().apply { timeInSecs = date }, availability)
 
     var start: Date?
         get() = getLongOrNull(START_LONG)?.let { Date(it * 1000) }
@@ -107,5 +126,7 @@ class Shift constructor() : ParseObject() {
             value.keys.forEach { k -> json.putOpt(k, value[k]) }
             put(SERVICES_JSON, json)
         }
+
+
 
 }

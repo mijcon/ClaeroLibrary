@@ -7,6 +7,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
+import com.myclaero.claerolibrary.core.Vehicle
 import kotlinx.android.synthetic.main.layout_vehicle.view.*
 
 
@@ -92,7 +93,7 @@ class VehicleView(context: Context, attrs: AttributeSet? = null) : ConstraintLay
 
     private fun setThumbnail() {
         view.imageVehThumb.setImageResource(android.R.color.transparent)
-        vehicle?.getThumbnailInBackground { vehicle, bitmap, e ->
+        vehicle?.getThumbnailAsync { vehicle, bitmap, e ->
             // e?.upload(TAG)
 
 	        // When this VehicleView is part of a RecyclerView, this asynchronous task may finish after the Vehicle
